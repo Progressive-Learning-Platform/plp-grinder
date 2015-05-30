@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
 
 import edu.asu.plp.Token;
 
@@ -27,10 +28,12 @@ public class Preprocessor
 		{
 			String line = scanner.nextLine().trim();
 			
+			Matcher matcher = Token.STRING_LITERAL_PATTERN.matcher(line);
 			String[] noStringLiterals = line.split(Token.Type.LITERAL_STRING.regex);
 			StringBuilder lineBuilder = new StringBuilder();
-			for (String substring : noStringLiterals)
+			for (int index = 0; index < noStringLiterals.length; index++)
 			{
+				String substring = noStringLiterals[index];
 				PreprocessResultToken result = new PreprocessResultToken();
 				result.blockCommentActive = blockCommentActive;
 				result.lineEnd = false;
@@ -38,9 +41,14 @@ public class Preprocessor
 				blockCommentActive = result.blockCommentActive;
 				if (result.lineEnd)
 					break;
+				
+				if (matcher.find())
+					lineBuilder.append(" " + matcher.group() + " ");
 			}
 			
-			lines.add(lineBuilder.toString());
+			String parsedLine = lineBuilder.toString().trim();
+			if (parsedLine.length() > 0)
+				lines.add(parsedLine);
 		}
 		
 		scanner.close();
