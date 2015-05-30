@@ -86,8 +86,8 @@ public class Lexer
 		if (line.trim().length() == 0)
 			return Collections.<String> emptyList();
 		
-		boolean escaped = delimeter.startsWith("\\");
-		String prependex = escaped ? delimeter.substring(1) : delimeter;
+		boolean delimeterIsEscaped = delimeter.startsWith("\\");
+		String prependex = delimeterIsEscaped ? delimeter.substring(1) : delimeter;
 		List<String> subStrings = new ArrayList<>();
 		String[] split = line.split(delimeter);
 		
