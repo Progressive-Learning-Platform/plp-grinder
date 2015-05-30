@@ -1,5 +1,9 @@
 package edu.asu.plp;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class Token
 {
@@ -67,5 +71,74 @@ public class Token
 		{
 			return token.matches(regex);
 		}
+	}
+	
+	public static final String[] CONTROL_TOKENS = new String[] { "\\.", "\\(", "\\)",
+			"\\{", "}", "\\[", "]", ";" };
+	public static final Pattern STRING_LITERAL_PATTERN = Pattern
+			.compile(Type.LITERAL_STRING.regex);
+	
+	private Type type;
+	private String value;
+	
+	public static List<Token> makeTokens(ArrayList<String> strings) throws LexException
+	{
+		List<Token> tokens = new LinkedList<>();
+		
+		for (String string : strings)
+		{
+			if (string.trim().length() == 0)
+				continue;
+			
+			Token token = new Token(string);
+			tokens.add(token);
+		}
+		
+		return tokens;
+	}
+	
+	public Token(String token) throws LexException
+	{
+		token = token.trim();
+		if (Type.UNSUPPORTED.matches(token))
+			throw new LexException("Unsupported Token: " + token);
+		
+		this.value = token;
+		for (Type type : Type.values())
+		{
+			if (type.matches(token))
+			{
+				this.type = type;
+				break;
+			}
+		}
+		
+		if (type == null)
+			throw new LexException("Type not found for: " + token);
+	}
+	
+	public String toString()
+	{
+		return type + " " + value;
+	}
+	
+	public Type getType()
+	{
+		return type;
+	}
+	
+	public void setType(Type type)
+	{
+		this.type = type;
+	}
+	
+	public String getValue()
+	{
+		return value;
+	}
+	
+	public void setValue(String value)
+	{
+		this.value = value;
 	}
 }
