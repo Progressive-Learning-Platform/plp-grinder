@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Scanner;
 
 import edu.asu.plp.Token;
 
@@ -18,7 +17,7 @@ public class Lexer
 	
 	public Lexer(File file) throws FileNotFoundException
 	{
-		this.lines = preprocess(file);
+		this.lines = Preprocessor.parse(file);
 		
 		// TODO: remove - for testing purposes only
 		File outputFile = new File("sampleData/output/BasicArithmatic.java.PREPROCESS");
@@ -33,22 +32,6 @@ public class Lexer
 	public Lexer(String filePath) throws FileNotFoundException
 	{
 		this(new File(filePath));
-	}
-	
-	private List<String> preprocess(File file) throws FileNotFoundException
-	{
-		List<String> lines = new ArrayList<>();
-		Scanner scanner = new Scanner(file);
-		
-		while (scanner.hasNext())
-		{
-			// TODO: Remove comments
-			String line = scanner.nextLine().trim();
-			lines.add(line);
-		}
-		
-		scanner.close();
-		return lines;
 	}
 	
 	public List<Token> lex() throws LexException
