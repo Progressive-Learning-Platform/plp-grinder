@@ -1,9 +1,12 @@
 package edu.asu.plp;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import edu.asu.plp.compile.lex.LexException;
 
 public class Token
 {
@@ -65,6 +68,11 @@ public class Token
 			}
 			
 			this.regex = regexBuilder.toString();
+		}
+		
+		private Type(String[] strings)
+		{
+			this(strings[0], Arrays.copyOfRange(strings, 1, strings.length));
 		}
 		
 		public boolean matches(String token)

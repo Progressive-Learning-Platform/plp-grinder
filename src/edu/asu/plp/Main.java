@@ -20,8 +20,8 @@ public class Main
 		
 		// TODO: remove comments (preprocess)
 		
-		File inputFile = new File("BasicArithmatic.java");
-		File outputFile = new File("BasicArithmatic.java.LEX");
+		File inputFile = new File("sampleData/BasicArithmatic.java");
+		File outputFile = new File("sampleData/output/BasicArithmatic.java.lexed");
 		Lexer lexer = new Lexer(inputFile);
 		PrintWriter output = new PrintWriter(outputFile);
 		List<Token> tokens = lexer.lex();
