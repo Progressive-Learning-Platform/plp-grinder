@@ -14,6 +14,8 @@ public class BasicArithmatic
 		int addConstant = b * constant;
 		addConstant += 2;
 		int multiplyImmediate = b * 0x05;
+		multiplyImmediate << 1;
+		multiplyImmediate++;
 		// DO NOT LEX
 		/* Do not lex */
 		/*
