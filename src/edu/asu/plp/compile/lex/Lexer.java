@@ -5,11 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import edu.asu.plp.Token;
+import edu.asu.util.Strings;
 
 public class Lexer
 {
@@ -58,7 +58,7 @@ public class Lexer
 		{
 			ArrayList<String> holder = new ArrayList<>();
 			for (String string : strings)
-				holder.addAll(splitAndRetain(string, control));
+				holder.addAll(Strings.splitAndRetain(string, control));
 			strings = holder;
 		}
 		
@@ -79,41 +79,5 @@ public class Lexer
 			System.err.println("Context: " + line);
 			throw lexException;
 		}
-	}
-	
-	private List<String> splitAndRetain(String line, String delimeter)
-	{
-		if (line.trim().length() == 0)
-			return Collections.<String> emptyList();
-		
-		boolean delimeterIsEscaped = delimeter.startsWith("\\");
-		String prependex = delimeterIsEscaped ? delimeter.substring(1) : delimeter;
-		List<String> subStrings = new ArrayList<>();
-		String[] split = line.split(delimeter);
-		
-		if (split.length == 0)
-		{
-			subStrings.add(prependex);
-		}
-		else
-		{
-			// FIXME: verify that an extra delimiter cannot be placed
-			if (split[0].length() > 0)
-				subStrings.add(split[0]);
-			for (int index = 1; index < split.length; index++)
-			{
-				String subString = split[index].trim();
-				if (subString.length() > 0)
-				{
-					subStrings.add(prependex);
-					subStrings.add(subString);
-				}
-			}
-			
-			if (line.endsWith(prependex))
-				subStrings.add(prependex);
-		}
-		
-		return subStrings;
 	}
 }

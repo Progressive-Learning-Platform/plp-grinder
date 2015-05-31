@@ -1,14 +1,13 @@
 package edu.asu.plp;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.asu.plp.compile.lex.LexException;
+import edu.asu.util.Strings;
 
 public class Token
 {
@@ -144,7 +143,7 @@ public class Token
 			if (e.getMessage().startsWith("Type not found for"))
 			{
 				String regex = Type.compoundRegex(Type.OPERATOR, Type.COMPARATOR);
-				return makeTokens(splitAndRetain(string, regex));
+				return makeTokens(Strings.splitAndRetain(string, regex));
 			}
 			else
 			{
@@ -196,36 +195,5 @@ public class Token
 	public void setValue(String value)
 	{
 		this.value = value;
-	}
-	
-	private static List<String> splitAndRetain(String line, String regex)
-	{
-		if (line.trim().length() == 0)
-			return Collections.<String> emptyList();
-		
-		Pattern pattern = Pattern.compile(regex);
-		Matcher matcher = pattern.matcher(line);
-		List<String> subStrings = new ArrayList<>();
-		String[] tokens = line.split(regex);
-		
-		if (tokens.length == 0)
-		{
-			if (matcher.find())
-				subStrings.add(matcher.group());
-			return subStrings;
-		}
-		else
-		{
-			for (int index = 0; index < tokens.length; index++)
-			{
-				String subString = tokens[index].trim();
-				if (subString.length() > 0)
-					subStrings.add(subString);
-				if (matcher.find())
-					subStrings.add(matcher.group());
-			}
-		}
-		
-		return subStrings;
 	}
 }
