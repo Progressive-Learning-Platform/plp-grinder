@@ -61,7 +61,9 @@ public class Preprocessor
 		if (result.blockCommentActive)
 		{
 			int blockEndIndex = substring.indexOf("*/");
-			if (blockEndIndex >= 0)
+			boolean blockEnds = blockEndIndex >= 0;
+			
+			if (blockEnds)
 			{
 				result.blockCommentActive = false;
 				return preprocess(substring.substring(blockEndIndex + 2), lineBuilder,
@@ -75,8 +77,11 @@ public class Preprocessor
 		}
 		else
 		{
-			int blockStartIndex = substring.indexOf("/*");
+			int blockCommentStartIndex = substring.indexOf("/*");
+			boolean blockCommentStarts = blockCommentStartIndex >= 0;
+			
 			int lineCommentStartIndex = substring.indexOf("//");
+			boolean lineCommentStarts = lineCommentStartIndex >= 0;
 			
 			Supplier<PreprocessResultToken> noComment = () -> {
 				String string = substring.trim();
@@ -94,36 +99,25 @@ public class Preprocessor
 			
 			Supplier<PreprocessResultToken> blockComment = () -> {
 				result.blockCommentActive = true;
-				lineBuilder.append(substring.substring(0, blockStartIndex));
-				return preprocess(substring.substring(blockStartIndex + 2), lineBuilder,
-						result);
+				lineBuilder.append(substring.substring(0, blockCommentStartIndex));
+				return preprocess(substring.substring(blockCommentStartIndex + 2),
+						lineBuilder, result);
 			};
 			
-			if (lineCommentStartIndex < 0 && blockStartIndex < 0)
+			if (!(lineCommentStarts || blockCommentStarts))
 			{
 				return noComment.get();
 			}
-			else if (lineCommentStartIndex >= 0 && blockStartIndex >= 0)
+			else if (lineCommentStarts && blockCommentStarts)
 			{
-				if (lineCommentStartIndex < blockStartIndex)
-				{
-					return lineComment.get();
-				}
-				else
-				{
-					return blockComment.get();
-				}
+				return (lineCommentStartIndex < blockCommentStartIndex) ? lineComment
+						.get() : blockComment.get();
+				
 			}
 			else
 			{
-				if (lineCommentStartIndex < 0)
-				{
-					return blockComment.get();
-				}
-				else
-				{
-					return lineComment.get();
-				}
+				return (lineCommentStartIndex >= 0) ? lineComment.get() : blockComment
+						.get();
 			}
 		}
 	}

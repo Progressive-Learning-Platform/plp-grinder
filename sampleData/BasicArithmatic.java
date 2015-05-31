@@ -13,7 +13,7 @@ public class BasicArithmatic
 		int subImmediate = a - 2;
 		int addConstant = b * constant;
 		addConstant += 2;
-		int multiplyImmediate = b * 5;
+		int multiplyImmediate = b * 0x05;
 		// DO NOT LEX
 		/* Do not lex */
 		/*
