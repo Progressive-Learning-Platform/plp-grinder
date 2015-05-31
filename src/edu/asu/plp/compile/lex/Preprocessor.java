@@ -78,6 +78,14 @@ public class Preprocessor
 			int blockStartIndex = substring.indexOf("/*");
 			int lineCommentStartIndex = substring.indexOf("//");
 			
+			Supplier<PreprocessResultToken> noComment = () -> {
+				String string = substring.trim();
+				if (string.length() > 0)
+					lineBuilder.append(string);
+				
+				return result;
+			};
+			
 			Supplier<PreprocessResultToken> lineComment = () -> {
 				lineBuilder.append(substring.substring(0, lineCommentStartIndex));
 				result.lineEnd = true;
@@ -89,14 +97,6 @@ public class Preprocessor
 				lineBuilder.append(substring.substring(0, blockStartIndex));
 				return preprocess(substring.substring(blockStartIndex + 2), lineBuilder,
 						result);
-			};
-			
-			Supplier<PreprocessResultToken> noComment = () -> {
-				String string = substring.trim();
-				if (string.length() > 0)
-					lineBuilder.append(string);
-				
-				return result;
 			};
 			
 			if (lineCommentStartIndex < 0 && blockStartIndex < 0)
