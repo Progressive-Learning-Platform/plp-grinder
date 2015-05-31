@@ -15,7 +15,7 @@ public class Token
 	public static enum Type
 	{
 		CONTROL("\\.", "\\(", "\\)", "\\{", "\\}", "\\[", "\\]", ";"),
-		LITERAL_INT("(\\d)+"),
+		LITERAL_INT("(0(x|b|d))?(\\d)+"),
 		LITERAL_LONG("(\\d)+[lL]"),
 		LITERAL_FLOAT("(((\\d+)?(\\.\\d+))|((\\d+)(\\.\\d+)?))[fF]"),
 		LITERAL_DOUBLE("(\\d+)?(\\.\\d+)"),
@@ -201,8 +201,6 @@ public class Token
 	
 	private static List<String> splitAndRetain(String line, String regex)
 	{
-		if (line.contains("++"))
-			System.out.println(line);
 		if (line.trim().length() == 0)
 			return Collections.<String> emptyList();
 		
