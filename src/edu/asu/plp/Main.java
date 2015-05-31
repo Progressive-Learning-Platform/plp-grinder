@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.util.List;
 
 import edu.asu.plp.compile.lex.Lexer;
+import edu.asu.plp.compile.parser.Parser;
 
 public class Main
 {
@@ -31,5 +32,9 @@ public class Main
 			output.println(token);
 		}
 		output.close();
+		
+		Parser parser = new Parser(tokens);
+		
+		
 	}
 }
