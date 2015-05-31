@@ -23,7 +23,7 @@ public class Token
 		LITERAL_STRING("\"([^\"\\\\\\n\\r]|\\\\.)*\""),
 		LITERAL_BOOLEAN("true|false"),
 		LITERAL_NULL("null"),
-		OPERATOR("((\\+|-|\\/|\\*|\\||&)=?)|="),
+		OPERATOR("((\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
 		COMPARATOR(">|>=|<|<=|&&|\\|\\||==|instanceof"),
 		TYPE("boolean|long|int|byte|short|char|double|float|void"),
 		MODIFIER_ACCESS("public|private|protected|static"),
