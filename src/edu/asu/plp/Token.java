@@ -2,8 +2,10 @@ package edu.asu.plp;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.asu.plp.compile.lex.LexException;
@@ -28,7 +30,7 @@ public class Token
 		MODIFIER_BEHAVIOUR("final|volitile|transient|synchronized|native|abstract|throws"),
 		MODIFIER_INHERITENCE("extends|implements"),
 		ACTION("return|continue|break|throw|new|assert|strictfp"),
-		CONSTRUCT_BLOCK("if|else|do|while|switch|case|default|for|try|catch|finally"),
+		CONSTRUCT_BLOCK("if|else|do|while|switch|case:|default|for|try|catch|finally"),
 		CONSTRUCT_TYPE_DEF("class|interface|enum"),
 		SPECIAL_ORGANIZATION("package"),
 		SPECIAL_RESERVED("goto|const"),
@@ -79,6 +81,30 @@ public class Token
 		{
 			return token.matches(regex);
 		}
+		
+		public static String compoundRegex(Object first, Object... objects)
+		{
+			StringBuilder regexBuilder = new StringBuilder();
+			
+			regexBuilder.append("(");
+			if (first instanceof Type)
+				regexBuilder.append(((Type) first).regex);
+			else
+				regexBuilder.append(first.toString());
+			regexBuilder.append(")");
+			
+			for (Object object : objects)
+			{
+				regexBuilder.append("|(");
+				if (object instanceof Type)
+					regexBuilder.append(((Type) object).regex);
+				else
+					regexBuilder.append(object.toString());
+				regexBuilder.append(")");
+			}
+			
+			return regexBuilder.toString();
+		}
 	}
 	
 	public static final String[] CONTROL_TOKENS = new String[] { "\\.", "\\(", "\\)",
@@ -89,20 +115,43 @@ public class Token
 	private Type type;
 	private String value;
 	
-	public static List<Token> makeTokens(ArrayList<String> strings) throws LexException
+	public static List<Token> makeTokens(List<String> strings) throws LexException
 	{
 		List<Token> tokens = new LinkedList<>();
 		
 		for (String string : strings)
 		{
-			if (string.trim().length() == 0)
-				continue;
+			List<Token> token = makeToken(string);
 			
-			Token token = new Token(string);
-			tokens.add(token);
+			if (token != null)
+				tokens.addAll(token);
 		}
 		
 		return tokens;
+	}
+	
+	private static List<Token> makeToken(String string) throws LexException
+	{
+		if (string.trim().length() == 0)
+			return null;
+		
+		try
+		{
+			Token token = new Token(string);
+			return Collections.<Token> singletonList(token);
+		}
+		catch (LexException e)
+		{
+			if (e.getMessage().startsWith("Type not found for"))
+			{
+				String regex = Type.compoundRegex(Type.OPERATOR, Type.COMPARATOR);
+				return makeTokens(splitAndRetain(string, regex));
+			}
+			else
+			{
+				throw e;
+			}
+		}
 	}
 	
 	public Token(String token) throws LexException
@@ -148,5 +197,38 @@ public class Token
 	public void setValue(String value)
 	{
 		this.value = value;
+	}
+	
+	private static List<String> splitAndRetain(String line, String regex)
+	{
+		if (line.contains("++"))
+			System.out.println(line);
+		if (line.trim().length() == 0)
+			return Collections.<String> emptyList();
+		
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(line);
+		List<String> subStrings = new ArrayList<>();
+		String[] tokens = line.split(regex);
+		
+		if (tokens.length == 0)
+		{
+			if (matcher.find())
+				subStrings.add(matcher.group());
+			return subStrings;
+		}
+		else
+		{
+			for (int index = 0; index < tokens.length; index++)
+			{
+				String subString = tokens[index].trim();
+				if (subString.length() > 0)
+					subStrings.add(subString);
+				if (matcher.find())
+					subStrings.add(matcher.group());
+			}
+		}
+		
+		return subStrings;
 	}
 }
