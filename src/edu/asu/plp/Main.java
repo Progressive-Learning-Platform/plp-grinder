@@ -24,9 +24,13 @@ public class Main
 		
 		File inputFile = new File("sampleData/BasicArithmatic.java");
 		File outputFile = new File("sampleData/output/BasicArithmatic.java.lexed");
+		File dumpFile = new File("sampleData/BasicArithmatic.java.PREPROCESS");
+		
 		Lexer lexer = new Lexer(inputFile);
-		PrintWriter output = new PrintWriter(outputFile);
+		lexer.dumpPreprocessData(dumpFile);
 		List<Token> tokens = lexer.lex();
+		
+		PrintWriter output = new PrintWriter(outputFile);
 		for (Token token : tokens)
 		{
 			System.out.println(token);
