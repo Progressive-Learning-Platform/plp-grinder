@@ -16,6 +16,18 @@ public class BasicArithmatic
 		int multiplyImmediate = b * 0x05;
 		multiplyImmediate << 1;
 		multiplyImmediate++;
+		
+		public int CasualMethod()
+		{
+			return 1;
+		}
+		
+		casualMethod();
+		
+		public int Sum(int a, int b)
+		{
+			return a + b;
+		}
 		// DO NOT LEX
 		/* Do not lex */
 		/*
