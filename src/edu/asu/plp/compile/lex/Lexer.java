@@ -18,20 +18,21 @@ public class Lexer
 	public Lexer(File file) throws FileNotFoundException
 	{
 		this.lines = Preprocessor.parse(file);
-		
-		// TODO: remove - for testing purposes only
-		File outputFile = new File("sampleData/output/BasicArithmatic.java.PREPROCESS");
-		PrintWriter output = new PrintWriter(outputFile);
-		for (String line : lines)
-		{
-			output.println(line);
-		}
-		output.close();
 	}
 	
 	public Lexer(String filePath) throws FileNotFoundException
 	{
 		this(new File(filePath));
+	}
+	
+	public void dumpPreprocessData(File dumpSite) throws FileNotFoundException
+	{
+		PrintWriter output = new PrintWriter(dumpSite);
+		for (String line : lines)
+		{
+			output.println(line);
+		}
+		output.close();
 	}
 	
 	public List<Token> lex() throws LexException
