@@ -54,7 +54,7 @@ public class Lexer
 		
 		// TODO: Extract String Literals
 		
-		for (String control : Token.CONTROL_TOKENS)
+		for (String control : Token.Groups.CONTROL_TOKENS)
 		{
 			ArrayList<String> holder = new ArrayList<>();
 			for (String string : strings)

@@ -11,9 +11,16 @@ import edu.asu.util.Strings;
 
 public class Token
 {
+	public static interface Groups
+	{
+		public static final String[] CONTROL_TOKENS = new String[] { "\\.", "\\(", "\\)",
+				"\\{", "}", "\\[", "]", ";" };
+	}
+	
 	public static enum Type
 	{
-		CONTROL("\\.", "\\(", "\\)", "\\{", "\\}", "\\[", "\\]", ";"),
+		// "\\.", "\\(", "\\)", "\\{", "\\}", "\\[", "\\]", ";"
+		CONTROL(Groups.CONTROL_TOKENS),
 		LITERAL_INT("(0(x|b|d))?(\\d)+"),
 		LITERAL_LONG("(\\d)+[lL]"),
 		LITERAL_FLOAT("(((\\d+)?(\\.\\d+))|((\\d+)(\\.\\d+)?))[fF]"),
@@ -49,30 +56,12 @@ public class Token
 		
 		private Type(Object first, Object... objects)
 		{
-			StringBuilder regexBuilder = new StringBuilder();
-			regexBuilder.append("(");
-			if (first instanceof Type)
-				regexBuilder.append(((Type) first).regex);
-			else
-				regexBuilder.append(first.toString());
-			regexBuilder.append(")");
-			
-			for (Object object : objects)
-			{
-				regexBuilder.append("|(");
-				if (object instanceof Type)
-					regexBuilder.append(((Type) object).regex);
-				else
-					regexBuilder.append(object.toString());
-				regexBuilder.append(")");
-			}
-			
-			this.regex = regexBuilder.toString();
+			this.regex = compoundRegex(first, objects);
 		}
 		
 		private Type(String[] strings)
 		{
-			this(strings[0], Arrays.copyOfRange(strings, 1, strings.length));
+			this(strings[0], (Object[]) Arrays.copyOfRange(strings, 1, strings.length));
 		}
 		
 		public boolean matches(String token)
@@ -105,8 +94,6 @@ public class Token
 		}
 	}
 	
-	public static final String[] CONTROL_TOKENS = new String[] { "\\.", "\\(", "\\)",
-			"\\{", "}", "\\[", "]", ";" };
 	public static final Pattern STRING_LITERAL_PATTERN = Pattern
 			.compile(Type.LITERAL_STRING.regex);
 	
