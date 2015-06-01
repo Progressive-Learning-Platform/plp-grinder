@@ -6,6 +6,7 @@ import java.util.List;
 
 import edu.asu.plp.compile.lex.Lexer;
 import edu.asu.plp.compile.parser.Parser;
+import edu.asu.plp.compile.parser.statements.Statement;
 
 public class Main
 {
@@ -35,6 +36,6 @@ public class Main
 		
 		Parser parser = new Parser(tokens);
 		
-		
+		List<Statement> statements = parser.parse(tokens);
 	}
 }
