@@ -14,7 +14,7 @@ public class Token
 	public static interface Groups
 	{
 		public static final String[] CONTROL_TOKENS = new String[] { "\\.", "\\(", "\\)",
-				"\\{", "}", "\\[", "]", ";" };
+				"\\{", "}", "\\[", "]", ";", "," };
 	}
 	
 	public static enum Type
@@ -130,7 +130,12 @@ public class Token
 			if (e.getMessage().startsWith("Type not found for"))
 			{
 				String regex = Type.compoundRegex(Type.OPERATOR, Type.COMPARATOR);
-				return makeTokens(Strings.splitAndRetain(string, regex));
+				List<String> dividedToken = Strings.splitAndRetain(string, regex);
+				
+				if (dividedToken.size() > 1)
+					return makeTokens(dividedToken);
+				else
+					throw e;
 			}
 			else
 			{
