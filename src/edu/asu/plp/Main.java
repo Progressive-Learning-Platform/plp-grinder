@@ -83,12 +83,12 @@ public class Main
 		PrintWriter output = new PrintWriter(outputFile);
 		for (Token token : tokens)
 		{
-			System.out.println(token);
+			//System.out.println(token);
 			output.println(token);
 		}
 		output.close();
 		
-		Parser parser = new Parser(tokens);
+		Parser parser = new Parser();
 		
 		List<Statement> statements = parser.parse(tokens);
 		
