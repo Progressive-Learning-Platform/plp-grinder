@@ -2,6 +2,16 @@ public class BasicArithmatic
 {
 	private static final int constant = 10;
 	
+	public static int CasualMethod()
+	{
+		return 1;
+	}
+	
+	public static int Sum(int a, int b)
+	{
+		return a + b;
+	}
+	
 	public static void main(String[] args)
 	{
 		int a = 4;
@@ -14,20 +24,13 @@ public class BasicArithmatic
 		int addConstant = b * constant;
 		addConstant += 2;
 		int multiplyImmediate = b * 0x05;
-		multiplyImmediate << 1;
+		multiplyImmediate = multiplyImmediate << 1;
 		multiplyImmediate++;
 		
-		public int CasualMethod()
-		{
-			return 1;
-		}
 		
-		casualMethod();
+		CasualMethod();
 		
-		public int Sum(int a, int b)
-		{
-			return a + b;
-		}
+		Sum(a, b);
 		// DO NOT LEX
 		/* Do not lex */
 		/*
