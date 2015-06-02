@@ -35,8 +35,8 @@ public class Parser
 		scopes.push(currentScope);
 		
 		tokenIterator = (ListIterator<Token>) tokens.iterator();
-
-		parseContructDef();
+		
+		parseContructDefinition();
 		
 		return statements;
 	}
@@ -47,13 +47,12 @@ public class Parser
 		while (!currentToken.getValue().equals(";"))
 		{
 			nextToken();
-			System.out.println("STATEMENT: " + currentToken.getValue());
 		}
 		
 		return statement;
 	}
 	
-	private void parseMethod()
+	private void parseMethodDefinition()
 	{
 		parseHeader();
 		parseMethodBody();
@@ -63,7 +62,7 @@ public class Parser
 	{
 		nextToken();
 		
-		while (true)
+		while (!currentToken.getValue().equals("}"))
 		{
 			if (currentToken.getType() == Type.MODIFIER_ACCESS)
 			{
@@ -78,20 +77,55 @@ public class Parser
 			}
 			else if (currentToken.getType() == Type.TYPE)
 			{
-				ungetToken();
-				parseStatement();
+				startPeer();
+				nextToken();
+
+				//TODO check for scopes {}
+				if(currentToken.getType() == Type.REFERNCE)
+				{
+					nextToken();
+					if(currentToken.getType() == Type.OPERATOR)
+					{
+						revertPeer();
+						parseStatement();
+					}
+					else if(currentToken.getType() == Type.CONTROL)
+					{
+						revertPeer();
+						parseMethodDefinition();
+					}
+				}
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
 			{
-				parseStatement();
-				break;
+				startPeer();
+				nextToken();
+				
+				if (currentToken.getValue().equals("("))
+				{
+					revertPeer();
+					// TODO parse arguments than pass those to method call?
+					parseArguments();
+					parseMethodCall();
+				}
+				else if (currentToken.getValue().equals("."))
+				{
+					revertPeer();
+					parseObjectCall();
+					
+				}
+				else if (currentToken.getType() == Type.OPERATOR)
+				{
+					revertPeer();
+					parseStatement();
+				}
 			}
 			nextToken();
 		}
 		closeScope();
 	}
-
-	private void parseContructDef()
+	
+	private void parseContructDefinition()
 	{
 		parseHeader();
 		parseClassBody();
@@ -114,7 +148,6 @@ public class Parser
 				
 				// consume left brace
 				nextToken();
-				newScope();
 				continue;
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
@@ -122,7 +155,7 @@ public class Parser
 				nextToken();
 				if (currentToken.getValue().equals("("))
 				{
-					passArguments();
+					parseArguments();
 				}
 			}
 			else if (currentToken.getType() == Type.TYPE)
@@ -131,9 +164,10 @@ public class Parser
 			}
 			nextToken();
 		}
+		newScope();
 	}
 	
-	private void passArguments()
+	private void parseArguments()
 	{
 		nextToken();
 		
@@ -146,8 +180,8 @@ public class Parser
 	private void parseClassBody()
 	{
 		nextToken();
-		
-		while (true)
+		//TODO check for scopes {}
+		while (!currentToken.getValue().equals("}"))
 		{
 			if (currentToken.getType() == Type.MODIFIER_ACCESS)
 			{
@@ -162,14 +196,60 @@ public class Parser
 			}
 			else if (currentToken.getType() == Type.TYPE)
 			{
-				parseStatement();
+				startPeer();
+				nextToken();
+				//Check for constructor
+				if(currentToken.getType() == Type.REFERNCE)
+				{
+					nextToken();
+					if(currentToken.getType() == Type.OPERATOR)
+					{
+						revertPeer();
+						parseStatement();
+					}
+					else if(currentToken.getType() == Type.CONTROL)
+					{
+						revertPeer();
+						parseMethodDefinition();
+					}
+				}
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
 			{
-				parseStatement();
+				startPeer();
+				nextToken();
+				//TODO remove things you cant do in the body. Copied from method call
+				if (currentToken.getValue().equals("("))
+				{
+					revertPeer();
+					// TODO parse arguments than pass those to method call?
+					// parseArguments();
+					parseMethodCall();
+				}
+				else if (currentToken.getValue().equals("."))
+				{
+					revertPeer();
+					parseObjectCall();
+					
+				}
+				else if (currentToken.getType() == Type.OPERATOR)
+				{
+					revertPeer();
+					parseStatement();
+				}
 			}
 			nextToken();
 		}
+	}
+	
+	private void parseObjectCall()
+	{
+	}
+	
+	private void parseMethodCall()
+	{
+		//Placeholder, consuming semicolon for now
+		nextToken();
 	}
 	
 	private void checkAgainst(Token modifier)
@@ -182,7 +262,7 @@ public class Parser
 			if (currentToken.getType() == Type.CONSTRUCT_TYPE_DEF)
 			{
 				revertPeer();
-				parseContructDef();
+				parseContructDefinition();
 				break;
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
@@ -202,12 +282,12 @@ public class Parser
 					if (currentToken.getValue().equals("{"))
 					{
 						revertPeer();
-						parseContructDef();
+						parseContructDefinition();
 					}
 					else if (currentToken.getValue().equals("("))
 					{
 						revertPeer();
-						parseMethod();
+						parseMethodDefinition();
 					}
 					break;
 				}
@@ -218,7 +298,6 @@ public class Parser
 			else if (currentToken.getType() == Type.TYPE)
 			{
 			}
-			
 			nextToken();
 		}
 	}
@@ -240,7 +319,7 @@ public class Parser
 	{
 		if (tokenIterator.hasNext())
 		{
-			if(peerActive)
+			if (peerActive)
 				peerCount++;
 			currentToken = tokenIterator.next();
 			return true;
@@ -252,7 +331,7 @@ public class Parser
 	private void startPeer()
 	{
 		// Use to peer ahead some number of tokens. Call revert peer to go back
-		// same number of starting token.
+		// same starting token.
 		peerCount = 1;
 		peerActive = true;
 		
