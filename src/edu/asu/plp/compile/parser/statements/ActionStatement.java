@@ -1,9 +1,9 @@
 package edu.asu.plp.compile.parser.statements;
 
-public class IfStatement
+public class ActionStatement
 {
 	
-	public IfStatement()
+	public ActionStatement()
 	{
 		// TODO Auto-generated constructor stub
 	}

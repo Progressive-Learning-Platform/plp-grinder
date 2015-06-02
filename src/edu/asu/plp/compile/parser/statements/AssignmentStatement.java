@@ -1,9 +1,9 @@
 package edu.asu.plp.compile.parser.statements;
 
-public class ArithmeticStatement
+public class AssignmentStatement extends Statement
 {
 	
-	public ArithmeticStatement()
+	public AssignmentStatement()
 	{
 		// TODO Auto-generated constructor stub
 	}
