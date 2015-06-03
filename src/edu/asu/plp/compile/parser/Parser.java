@@ -7,7 +7,9 @@ import java.util.Stack;
 
 import edu.asu.plp.Token;
 import edu.asu.plp.Token.Type;
+import edu.asu.plp.compile.parser.statements.Expression;
 import edu.asu.plp.compile.parser.statements.Statement;
+import edu.asu.plp.compile.parser.statements.Statement.StatementType;
 import edu.asu.plp.scope.Scope;
 
 public class Parser
@@ -30,15 +32,15 @@ public class Parser
 		}
 	}
 	
-	List<Statement> statements;
-	Stack<Scope> scopes;
-	Scope currentScope;
-	Scope classStaticScope;
+	private List<Statement> statements;
+	private Stack<Scope> scopes;
+	private Scope currentScope;
+	private Scope classStaticScope;
 	
-	Token currentToken;
-	ListIterator<Token> tokenIterator;
-	int peerCount = 0;
-	boolean peerActive = false;
+	private Token currentToken;
+	private ListIterator<Token> tokenIterator;
+	private int peerCount = 0;
+	private boolean peerActive = false;
 	
 	public Parser()
 	{
@@ -47,7 +49,6 @@ public class Parser
 	
 	public List<Statement> parse(List<Token> tokens) throws ParseException
 	{
-		System.out.println("<--------Parser------>");
 		statements = new LinkedList<>();
 		
 		scopes = new Stack<Scope>();
@@ -63,19 +64,100 @@ public class Parser
 	
 	private Statement parseStatement()
 	{
+		nextToken();
 		Statement statement = null;
-		
 		Variable leftHandSide;
+		String operator;
+		Expression rightHandSide;
 		
-		while (!currentToken.getValue().equals(";"))
+		// either existing variable or UserMadeClass
+		if (currentToken.getType() == Type.REFERNCE)
 		{
-			nextToken();
-			System.out.println("Statement: " + currentToken);
+			// Check against user-made classes for initialization
+			
+			//Check against initialized objects
+			
+			// Check Against Methods
+			// Method is a list of statements (add LinkedList<Statement> to
+			// statement).
+			
+			// else check against variables in scope
+			// Waiting on change to scope.
+			//@formatter:off
+			/*
+			if(currentScope.contains(currentToken.getValue())) 
+			{
+				//Get string id back for variable.
+				
+			}
+			*/
+			//@formatter:on
+
+			//TODO remove, parseExpression() currently for running purposes.  
+			parseExpression();
+		}
+		else if (currentToken.getType() == Type.ACTION)
+		{
+			// TODO: return|continue|break|throw|assert
+			
+			//TODO remove, parseExpression() currently for running purposes. 
+			parseExpression();
+		}
+		// Parse left hand side for new variable
+		else
+		{
+			statement = new Statement(StatementType.ASSIGNMENT);
+			
+			boolean isConstant = false;
+			boolean isStatic = false;
+			String type = null;
+			String name = null;
+			
+			while (currentToken.getType() != Type.OPERATOR)
+			{
+				if (currentToken.getValue().equals("static"))
+					isStatic = true;
+				else if (currentToken.getValue().equals("final"))
+					isConstant = true;
+				else if (currentToken.getType() == Type.TYPE)
+					type = currentToken.getValue();
+				else if (currentToken.getType() == Type.REFERNCE)
+					name = currentToken.getValue();
+				
+				nextToken();
+			}
+			// TODO check for variable inside scope
+			leftHandSide = new Variable(type, name, isConstant);
+			
+			if (isStatic)
+				classStaticScope.addVariable(leftHandSide);
+			else
+				currentScope.addVariable(leftHandSide);
+			
+			operator = currentToken.getValue();
+			
+			parseExpression();
 		}
 		
 		return statement;
 	}
 	
+	private Expression parseExpression()
+	{
+		Expression expression = new Expression();
+		//System.out.print(currentToken.getValue() + " ");
+
+		nextToken();
+		while (!currentToken.getValue().equals(";"))
+		{
+			System.out.print(currentToken.getValue() + " ");
+			nextToken();
+		}
+		
+		System.out.println();
+		return expression;
+	}
+
 	private void parseMethodDefinition()
 	{
 		parseMethodHeader();
@@ -99,7 +181,7 @@ public class Parser
 			}
 			else if (currentToken.getType() == Type.CONSTRUCT_TYPE_DEF)
 			{
-				//TODO: check if interface or enum, and iterate past it
+				// TODO: check if interface or enum, and iterate past it
 				// consume construct name
 				nextToken();
 				String getConstructName = currentToken.getValue();
@@ -121,6 +203,7 @@ public class Parser
 	{
 		nextToken();
 		// TODO: Check for extends and implements
+		// TODO: Check for throws
 		while (!currentToken.getValue().equals("{"))
 		{
 			if (currentToken.getType() == Type.MODIFIER_ACCESS)
@@ -146,7 +229,7 @@ public class Parser
 	private void parseClassBody()
 	{
 		nextToken();
-		//TODO check for scopes {}
+		// TODO check for scopes {}
 		while (!currentToken.getValue().equals("}"))
 		{
 			if (currentToken.getType() == Type.MODIFIER_ACCESS)
@@ -162,37 +245,38 @@ public class Parser
 			}
 			else if (currentToken.getType() == Type.TYPE)
 			{
-				startPeer();
+				startPeerAhead();
 				nextToken();
-				if(currentToken.getType() == Type.REFERNCE)
+				if (currentToken.getType() == Type.REFERNCE)
 				{
 					nextToken();
-					if(currentToken.getType() == Type.OPERATOR)
+					if (currentToken.getType() == Type.OPERATOR)
 					{
-						revertPeer();
+						revertPeerAhead();
 						parseStatement();
 					}
-					else if(currentToken.getType() == Type.CONTROL)
+					else if (currentToken.getType() == Type.CONTROL)
 					{
-						//TODO check for classes
-						revertPeer();
+						// TODO check for classes
+						revertPeerAhead();
 						parseMethodDefinition();
 					}
 				}
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
 			{
-				startPeer();
+				startPeerAhead();
 				nextToken();
-				//TODO remove things you cant do in the body. Copied from method call
+				// TODO remove things you cant do in the body. Copied from
+				// method call
 				if (currentToken.getValue().equals("("))
 				{
-					revertPeer();
-					//Check for constructor
+					revertPeerAhead();
+					// Check for constructor
 				}
 				else if (currentToken.getType() == Type.OPERATOR)
 				{
-					revertPeer();
+					revertPeerAhead();
 					parseStatement();
 				}
 			}
@@ -220,48 +304,43 @@ public class Parser
 			}
 			else if (currentToken.getType() == Type.TYPE)
 			{
-				startPeer();
+				startPeerAhead();
 				nextToken();
-
-				//TODO check for scopes {}
-				if(currentToken.getType() == Type.REFERNCE)
+				
+				// TODO check for scopes {}
+				if (currentToken.getType() == Type.REFERNCE)
 				{
 					nextToken();
-					if(currentToken.getType() == Type.OPERATOR)
+					if (currentToken.getType() == Type.OPERATOR)
 					{
-						revertPeer();
+						revertPeerAhead();
 						parseStatement();
 					}
-					else if(currentToken.getType() == Type.CONTROL)
+					else if (currentToken.getType() == Type.CONTROL)
 					{
-						revertPeer();
+						revertPeerAhead();
 						parseMethodDefinition();
 					}
 				}
 			}
 			else if (currentToken.getType() == Type.REFERNCE)
 			{
-				startPeer();
+				startPeerAhead();
 				nextToken();
 				
-				if (currentToken.getValue().equals("("))
+				if (currentToken.getValue().equals("(")
+						|| currentToken.getValue().equals(".")
+						|| currentToken.getType() == Type.OPERATOR)
 				{
-					revertPeer();
-					// TODO parse arguments than pass those to method call?
-					parseArguments();
-					parseMethodCall();
-				}
-				else if (currentToken.getValue().equals("."))
-				{
-					revertPeer();
-					parseObjectCall();
-					
-				}
-				else if (currentToken.getType() == Type.OPERATOR)
-				{
-					revertPeer();
+					revertPeerAhead();
 					parseStatement();
 				}
+			}
+			// TODO debugging, remove and change
+			else if (currentToken.getValue().equals("return"))
+			{
+				ungetToken();
+				parseStatement();
 			}
 			nextToken();
 		}
@@ -284,21 +363,21 @@ public class Parser
 	
 	private void parseMethodCall()
 	{
-		//Placeholder, consuming semicolon for now
+		// Placeholder, consuming semicolon for now
 		nextToken();
 	}
 	
 	private void checkAgainst(Token modifier)
 	{
-		startPeer();
+		startPeerAhead();
 		nextToken();
 		
 		while (true)
 		{
 			if (currentToken.getType() == Type.CONSTRUCT_TYPE_DEF)
 			{
-				//Class in class, or local class in method
-				revertPeer();
+				// Class in class, or local class in method
+				revertPeerAhead();
 				parseConstructDefinition();
 				break;
 			}
@@ -309,7 +388,7 @@ public class Parser
 				// It's an assignment
 				if (currentToken.getType() == Type.OPERATOR)
 				{
-					revertPeer();
+					revertPeerAhead();
 					parseStatement();
 					break;
 				}
@@ -318,12 +397,12 @@ public class Parser
 				{
 					if (currentToken.getValue().equals("{"))
 					{
-						revertPeer();
+						revertPeerAhead();
 						parseConstructDefinition();
 					}
 					else if (currentToken.getValue().equals("("))
 					{
-						revertPeer();
+						revertPeerAhead();
 						parseMethodDefinition();
 					}
 					break;
@@ -359,7 +438,7 @@ public class Parser
 			return false;
 	}
 	
-	private void startPeer()
+	private void startPeerAhead()
 	{
 		// Use to peer ahead some number of tokens. Call revert peer to go back
 		// same starting token.
@@ -368,7 +447,7 @@ public class Parser
 		
 	}
 	
-	private void revertPeer()
+	private void revertPeerAhead()
 	{
 		peerActive = false;
 		ungetToken(peerCount);
@@ -376,30 +455,30 @@ public class Parser
 	
 	private void newScope(BodyType bodyType)
 	{
-		if(bodyType == BodyType.CLASS)
+		if (bodyType == BodyType.CLASS)
 		{
 			classStaticScope = currentScope.makeChild();
 			currentScope = classStaticScope.makeChild();
 			scopes.push(classStaticScope);
 			scopes.push(currentScope);
 		}
-		else if(bodyType == BodyType.METHOD)
+		else if (bodyType == BodyType.METHOD)
 		{
 			classStaticScope = null;
 			scopes.push(currentScope);
 			currentScope = currentScope.makeChild();
 			scopes.push(currentScope);
-		}	
+		}
 	}
 	
 	private void closeScope(BodyType bodyType)
 	{
-		if(bodyType == BodyType.CLASS)
+		if (bodyType == BodyType.CLASS)
 		{
 			scopes.pop();
 			currentScope = scopes.peek();
 		}
-		else if(bodyType == BodyType.METHOD)
+		else if (bodyType == BodyType.METHOD)
 		{
 			scopes.pop();
 			currentScope = scopes.pop();

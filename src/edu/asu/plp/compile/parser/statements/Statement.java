@@ -8,12 +8,13 @@ public class Statement
 		ACTION,
 		FOR,
 		IF,
-		GOTO;
+		GOTO,
+		LINK_LIST;
 	}
 	
-	public Statement()
+	public Statement(StatementType type)
 	{
-		// TODO Auto-generated constructor stub
+		this.type = type;
 	}
 	
 	private StatementType type;

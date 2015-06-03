@@ -1,11 +1,8 @@
 package edu.asu.plp.compile.parser;
 
-public class ParseException extends Exception
+import edu.asu.plp.compile.CompileException;
+
+public class ParseException extends CompileException
 {
-	
-	public ParseException(String arg0)
-	{
-		super(arg0);
-	}
 	
 }
