@@ -1,6 +1,7 @@
 package edu.asu.plp.compile.parser.statements;
 
 import edu.asu.plp.compile.parser.Variable;
+import edu.asu.plp.compile.parser.statements.components.Expression;
 
 public class AssignmentStatement
 {

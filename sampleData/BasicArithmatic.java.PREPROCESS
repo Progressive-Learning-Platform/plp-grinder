@@ -22,10 +22,12 @@ int addConstant = b * constant;
 addConstant += 2;
 int multiplyImmediate = b * 0x05;
 int parenthesis = a + ( a + b );
-int pemdasFull = (a + b) * 3 / 5 - 10;
-int pemdasFullAlternate = a + b * (3 / (5 - 10));
+int pemdasFull = (a + b) * 3 - 10;
+int pemdasFullAlternate = a + b * (3 - 10);
+int multipleParenthis = 1 + (a + (b - 5) * 2) * 7;
 multiplyImmediate = multiplyImmediate << 1;
 multiplyImmediate++;
+boolean test = true | false;
 CasualMethod();
 Sum(a, b);
 }

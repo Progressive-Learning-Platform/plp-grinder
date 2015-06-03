@@ -7,9 +7,9 @@ import java.util.Stack;
 
 import edu.asu.plp.Token;
 import edu.asu.plp.Token.Type;
-import edu.asu.plp.compile.parser.statements.Expression;
 import edu.asu.plp.compile.parser.statements.Statement;
 import edu.asu.plp.compile.parser.statements.Statement.StatementType;
+import edu.asu.plp.compile.parser.statements.components.Expression;
 import edu.asu.plp.scope.Scope;
 
 public class Parser
