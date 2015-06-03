@@ -29,6 +29,7 @@ public class Token
 		LITERAL_STRING("\"([^\"\\\\\\n\\r]|\\\\.)*\""),
 		LITERAL_BOOLEAN("true|false"),
 		LITERAL_NULL("null"),
+		CONSTRUCT_GENERICS_DEF("<[a-z A-Z]+>"),
 		OPERATOR("((\\+\\+|--|\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
 		COMPARATOR(">|>=|<|<=|&&|\\|\\||==|instanceof"),
 		TYPE("boolean|long|int|byte|short|char|double|float|void"),
@@ -45,6 +46,7 @@ public class Token
 		UNSUPPORTED(LITERAL_LONG, LITERAL_FLOAT, LITERAL_DOUBLE, LITERAL_CHAR,
 				LITERAL_STRING, "\\/", MODIFIER_INHERITENCE, SPECIAL_RESERVED,
 				"try|catch|finally|enum|interface|assert|new|throw", SPECIAL_IMPORT,
+				CONSTRUCT_GENERICS_DEF,
 				"instanceof|double|float|volitile|transient|synchronized|native|abstract|throws|:");
 		
 		public String regex;
