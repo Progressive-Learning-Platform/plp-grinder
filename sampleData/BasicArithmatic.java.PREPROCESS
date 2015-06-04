@@ -26,9 +26,6 @@ int pemdasFull = (a + b) * 3 - 10;
 int pemdasFullAlternate = a + b * (3 - 10);
 int multipleParenthis = 1 + (a + (b - 5) * 2) * 7;
 multiplyImmediate = multiplyImmediate << 1;
-multiplyImmediate++;
 boolean test = true | false;
-CasualMethod();
-Sum(a, b);
 }
 }

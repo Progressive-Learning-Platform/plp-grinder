@@ -29,13 +29,13 @@ public class BasicArithmatic
 		int pemdasFullAlternate = a + b * (3 - 10);
 		int multipleParenthis = 1 + (a + (b - 5) * 2) * 7;
 		multiplyImmediate = multiplyImmediate << 1;
-		multiplyImmediate++;
+		//multiplyImmediate++;
 		boolean test = true | false;
 		
 		
-		CasualMethod();
+		//CasualMethod();
 		
-		Sum(a, b);
+		//Sum(a, b);
 		// DO NOT LEX
 		/* Do not lex */
 		/*

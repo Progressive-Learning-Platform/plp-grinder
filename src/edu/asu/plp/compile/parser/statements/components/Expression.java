@@ -4,9 +4,13 @@ public class Expression
 {
 	private ExpressionComponent rightHandSide;
 	
-	public Expression()
+	public Expression(ExpressionComponent rightHandSide)
 	{
-		// TODO Auto-generated constructor stub
+		this.rightHandSide = rightHandSide;
 	}
-	
+
+	public ExpressionComponent getRightHandSide()
+	{
+		return rightHandSide;
+	}
 }
