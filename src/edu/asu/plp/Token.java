@@ -19,7 +19,6 @@ public class Token
 	
 	public static enum Type
 	{
-		// "\\.", "\\(", "\\)", "\\{", "\\}", "\\[", "\\]", ";"
 		CONTROL(Groups.CONTROL_TOKENS),
 		LITERAL_INT("(0(x|b|d))?(\\d)+"),
 		LITERAL_LONG("(\\d)+[lL]"),
@@ -30,10 +29,13 @@ public class Token
 		LITERAL_BOOLEAN("true|false"),
 		LITERAL_NULL("null"),
 		CONSTRUCT_GENERICS_DEF("<[a-z A-Z]+>"),
-		OPERATOR("((\\+\\+|--|\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
+		OPERATOR_UNARY("\\+\\+|--"),
+		OPERATOR_BINARY("((\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
+		OPERATOR(OPERATOR_UNARY, OPERATOR_BINARY), // Backward Compatibility
 		COMPARATOR(">|>=|<|<=|&&|\\|\\||==|instanceof"),
 		TYPE("boolean|long|int|byte|short|char|double|float|void"),
-		MODIFIER_ACCESS("public|private|protected|static"),
+		MODIFIER_ACCESS_PERMISSIONS("public|private|protected"),
+		MODIFIER_ACCESS(MODIFIER_ACCESS_PERMISSIONS, "static"), // Backward Compatibility
 		MODIFIER_BEHAVIOUR("final|volitile|transient|synchronized|native|abstract|throws"),
 		MODIFIER_INHERITENCE("extends|implements"),
 		ACTION("return|continue|break|throw|new|assert|strictfp"),
