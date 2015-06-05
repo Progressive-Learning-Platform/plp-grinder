@@ -8,23 +8,21 @@ import java.io.PrintWriter;
 import java.util.List;
 
 import edu.asu.plp.compile.lex.Lexer;
-import edu.asu.plp.compile.parser.Parser;
-import edu.asu.plp.compile.parser.statements.Statement;
 import edu.asu.util.Strings;
 
 public class Main
 {
 	public static void main(String[] args) throws Exception
 	{
-		// Create scoped symbol table
-		// Convert and simplify variables
-		// Create execution graph
-		// Write graph to assembly
-		
 		if (args.length == 0)
 			args = new String[] { "sampleData/BasicArithmatic.java" };
 		
-		compileOracle(args);
+		if (!compileOracle(args))
+		{
+			System.out.println("Unable to compile, because code is not valid java.");
+			System.out.println("Please fix errors point out above.");
+			System.exit(-1);
+		}
 		
 		File inputFile = new File("sampleData/BasicArithmatic.java");
 		File outputFile = new File("sampleData/output/BasicArithmatic.java.lexed");
@@ -37,18 +35,10 @@ public class Main
 		PrintWriter output = new PrintWriter(outputFile);
 		for (Token token : tokens)
 		{
-			// System.out.println(token);
+			System.out.println(token);
 			output.println(token);
 		}
 		output.close();
-		
-		Parser parser = new Parser();
-		
-		List<Statement> statements = parser.parse(tokens);
-		for (Statement statement : statements)
-		{
-			System.out.println("s" + statement);
-		}
 	}
 	
 	private static boolean compileOracle(String[] args)
@@ -95,14 +85,7 @@ public class Main
 				line = reader.readLine();
 			}
 			
-			if (encounteredErrors)
-			{
-				System.out.println("Unable to compile, because code is not valid java.");
-				System.out.println("Please fix errors point out above.");
-				System.exit(-1);
-			}
-			
-			return encounteredErrors;
+			return !encounteredErrors;
 		}
 		catch (Exception e)
 		{
