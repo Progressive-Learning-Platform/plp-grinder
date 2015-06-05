@@ -36,4 +36,13 @@ public class Strings
 		
 		return subStrings;
 	}
+	
+	public static String[] concatArrays(String[] base, String... strings)
+	{
+		String[] array = new String[base.length + strings.length];
+		System.arraycopy(base, 0, array, 0, base.length);
+		System.arraycopy(strings, 0, array, base.length, strings.length);
+		
+		return array;
+	}
 }
