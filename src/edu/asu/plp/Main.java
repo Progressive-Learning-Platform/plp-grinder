@@ -57,8 +57,7 @@ public class Main
 		classOutputDirectory.mkdirs();
 		
 		// TODO allow for compiling multiple classes / Work on all platforms
-		int offset = 3;
-		String[] commands = new String[args.length + offset];
+		String[] commands = new String[3];
 		
 		commands[0] = "javac";
 		commands[1] = "-d";
