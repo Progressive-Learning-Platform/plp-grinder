@@ -2,6 +2,7 @@ package edu.asu.plp;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.List;
@@ -9,68 +10,21 @@ import java.util.List;
 import edu.asu.plp.compile.lex.Lexer;
 import edu.asu.plp.compile.parser.Parser;
 import edu.asu.plp.compile.parser.statements.Statement;
+import edu.asu.util.Strings;
 
 public class Main
 {
 	public static void main(String[] args) throws Exception
 	{
-		// Run Oracle Compile
-		// if (compileError) ECHO and END
-		// Convert and remove modifiers (simplify source code)
 		// Create scoped symbol table
 		// Convert and simplify variables
 		// Create execution graph
 		// Write graph to assembly
 		
-		// TODO: remove comments (preprocess)
-
-		args = new String[1];
-		args[0] = "sampleData/BasicArithmatic.java"; 
-				
-		if(args.length >= 1)
-		{
-			//TODO allow for compiling multiple classes / Work on all platforms
-			int offset = 1;
-			boolean encounteredErrors = false;
-			String[] commands = new String[args.length + offset];
-			String[] classesToDelete = new String[args.length];
-			
-			commands[0] = "javac";
-			
-			for(int arguments = 0; arguments < args.length; arguments++)
-			{
-				commands[arguments + offset] = args[arguments];
-				classesToDelete[arguments] = args[arguments].replace(".java", ".class");
-			}
-			
-			ProcessBuilder builder = new ProcessBuilder(commands);
-			builder.redirectErrorStream(true);
-			
-			Process process = builder.start();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			String line = reader.readLine();
-			
-			while(line != null)
-			{
-				encounteredErrors = true;
-				System.out.println(line);
-				line = reader.readLine();
-			}
-			
-			for(int arguments = 0; arguments < args.length; arguments++)
-			{
-				File file = new File(classesToDelete[arguments]);
-				if(file.exists())
-					file.delete();
-			}
-			
-			if(encounteredErrors)
-			{
-				System.out.println("Unable to compile, because code is not valid java.");
-				System.out.println("Please fix errors point out above.");
-				System.exit(-1);
-			}
-		}
+		if (args.length == 0)
+			args = new String[] { "sampleData/BasicArithmatic.java" };
+		
+		compileOracle(args);
 		
 		File inputFile = new File("sampleData/BasicArithmatic.java");
 		File outputFile = new File("sampleData/output/BasicArithmatic.java.lexed");
@@ -83,7 +37,7 @@ public class Main
 		PrintWriter output = new PrintWriter(outputFile);
 		for (Token token : tokens)
 		{
-			//System.out.println(token);
+			// System.out.println(token);
 			output.println(token);
 		}
 		output.close();
@@ -91,6 +45,70 @@ public class Main
 		Parser parser = new Parser();
 		
 		List<Statement> statements = parser.parse(tokens);
+		for (Statement statement : statements)
+		{
+			System.out.println("s" + statement);
+		}
+	}
+	
+	private static boolean compileOracle(String[] args)
+	{
+		File classOutputDirectory = new File("./output/temp/class");
+		classOutputDirectory.mkdirs();
 		
+		// TODO allow for compiling multiple classes / Work on all platforms
+		int offset = 3;
+		String[] commands = new String[args.length + offset];
+		
+		commands[0] = "javac";
+		commands[1] = "-d";
+		commands[2] = classOutputDirectory.getPath();
+		
+		// Concatenate args onto commands
+		commands = Strings.concatArrays(commands, args);
+		
+		boolean success = build(commands);
+		
+		for (File childFile : classOutputDirectory.listFiles())
+			childFile.delete();
+		
+		return success;
+	}
+	
+	private static boolean build(String[] commands)
+	{
+		try
+		{
+			boolean encounteredErrors = false;
+			
+			ProcessBuilder builder = new ProcessBuilder(commands);
+			builder.redirectErrorStream(true);
+			
+			Process process = builder.start();
+			InputStream inputStream = process.getInputStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+			String line = reader.readLine();
+			
+			while (line != null)
+			{
+				encounteredErrors = true;
+				System.out.println(line);
+				line = reader.readLine();
+			}
+			
+			if (encounteredErrors)
+			{
+				System.out.println("Unable to compile, because code is not valid java.");
+				System.out.println("Please fix errors point out above.");
+				System.exit(-1);
+			}
+			
+			return encounteredErrors;
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return false;
+		}
 	}
 }
