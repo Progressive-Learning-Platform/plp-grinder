@@ -1,13 +1,11 @@
 package edu.asu.plp;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import edu.asu.plp.compile.lex.LexException;
-import edu.asu.util.Strings;
 
 public class Token
 {
@@ -43,7 +41,7 @@ public class Token
 		CONSTRUCT_TYPE_DEF("class|interface|enum"),
 		SPECIAL_ORGANIZATION("package"),
 		SPECIAL_RESERVED("goto|const"),
-		SPECIAL_IMPORT("import"),
+		SPECIAL_IMPORT("import( +static)?( )+([a-zA-Z\\._])+\\*?"),
 		REFERNCE("[a-zA-Z]+[a-zA-Z\\d]*"),
 		UNSUPPORTED(LITERAL_LONG, LITERAL_FLOAT, LITERAL_DOUBLE, LITERAL_CHAR,
 				LITERAL_STRING, "\\/", MODIFIER_INHERITENCE, SPECIAL_RESERVED,
@@ -109,43 +107,9 @@ public class Token
 		List<Token> tokens = new LinkedList<>();
 		
 		for (String string : strings)
-		{
-			List<Token> token = makeToken(string);
-			
-			if (token != null)
-				tokens.addAll(token);
-		}
+			tokens.add(new Token(string));
 		
 		return tokens;
-	}
-	
-	private static List<Token> makeToken(String string) throws LexException
-	{
-		if (string.trim().length() == 0)
-			return null;
-		
-		try
-		{
-			Token token = new Token(string);
-			return Collections.<Token> singletonList(token);
-		}
-		catch (LexException e)
-		{
-			if (e.getMessage().startsWith("Type not found for"))
-			{
-				String regex = Type.compoundRegex(Type.OPERATOR, Type.COMPARATOR);
-				List<String> dividedToken = Strings.splitAndRetain(string, regex);
-				
-				if (dividedToken.size() > 1)
-					return makeTokens(dividedToken);
-				else
-					throw e;
-			}
-			else
-			{
-				throw e;
-			}
-		}
 	}
 	
 	public Token(String token) throws LexException
