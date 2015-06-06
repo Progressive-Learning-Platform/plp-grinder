@@ -41,7 +41,7 @@ public class Token
 		CONSTRUCT_TYPE_DEF("class|interface|enum"),
 		SPECIAL_ORGANIZATION("package"),
 		SPECIAL_RESERVED("goto|const"),
-		SPECIAL_IMPORT("import"),
+		SPECIAL_IMPORT("import( +static)?( )+([a-zA-Z\\._])+\\*?"),
 		REFERNCE("[a-zA-Z]+[a-zA-Z\\d]*"),
 		UNSUPPORTED(LITERAL_LONG, LITERAL_FLOAT, LITERAL_DOUBLE, LITERAL_CHAR,
 				LITERAL_STRING, "\\/", MODIFIER_INHERITENCE, SPECIAL_RESERVED,
