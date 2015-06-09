@@ -49,6 +49,7 @@ public class Main
 		{
 			System.out.println("s" + statement);
 		}
+		
 	}
 	
 	private static boolean compileOracle(String[] args)
