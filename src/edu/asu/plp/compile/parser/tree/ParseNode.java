@@ -2,6 +2,9 @@ package edu.asu.plp.compile.parser.tree;
 
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 public interface ParseNode
 {
 	/**
@@ -23,4 +26,18 @@ public interface ParseNode
 	 *         no children are present
 	 */
 	List<ParseNode> getChildren();
+	
+	default JSONObject toJSON()
+	{
+		JSONObject object = new JSONObject();
+		object.append("type", getType().name());
+		object.append("value", getValue());
+		
+		JSONArray children = new JSONArray();
+		for (ParseNode child : getChildren())
+			children.put(child.toJSON());
+		
+		object.append("children", children);
+		return object;
+	}
 }
