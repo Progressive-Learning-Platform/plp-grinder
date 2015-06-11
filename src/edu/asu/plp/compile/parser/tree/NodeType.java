@@ -20,9 +20,10 @@ public enum NodeType
 	ACCESSOR,
 	
 	/** 
-	 * 0 Children
+	 * N Children
 	 * Must specify a value
 	 * value is the name of a subroutine to call
+	 * Children: Argument values, in order from left to right
 	 */
 	SUBROUTINE,
 	
