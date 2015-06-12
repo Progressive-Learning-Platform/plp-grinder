@@ -4,6 +4,13 @@ public enum NodeType
 {
 	//@formatter:off
 	/** 
+	 * 2:N Children
+	 * No Value
+	 * Children: statements to be executed from left to right
+	 */
+	SEQUENCE,
+	
+	/** 
 	 * 2 Children
 	 * No Value
 	 * Left: Value node specifying the type
@@ -67,7 +74,7 @@ public enum NodeType
 	
 	/** 
 	 * 1:N Children
-	 * Must specify a value: value specifies which operator (+, -, =, etc.). Note that the example values are all binary operators, and will therefore have 2 children
+	 * Must specify a value: value specifies which operator (+, -, =, etc.). Note that the example values are all binary operators, and will therefore have exactly 2 children
 	 * Children: value nodes or nodes (such as operators) that evaluate to a value.
 	 */
 	OPERATOR;
