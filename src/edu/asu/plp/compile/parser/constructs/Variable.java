@@ -1,4 +1,4 @@
-package edu.asu.plp.compile.parser;
+package edu.asu.plp.compile.parser.constructs;
 
 public class Variable
 {
