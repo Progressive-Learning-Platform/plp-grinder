@@ -26,7 +26,7 @@ public class Token
 		LITERAL_STRING("\"([^\"\\\\\\n\\r]|\\\\.)*\""),
 		LITERAL_BOOLEAN("true|false"),
 		LITERAL_NULL("null"),
-		CONSTRUCT_GENERICS_DEF("<[a-z A-Z]+>"),
+		CONSTRUCT_GENERICS_DEF("<( )*([a-zA-Z],?( )*)+( )*>"),
 		OPERATOR_UNARY("\\+\\+|--"),
 		OPERATOR_BINARY("((\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
 		OPERATOR(OPERATOR_UNARY, OPERATOR_BINARY), // Backward Compatibility
