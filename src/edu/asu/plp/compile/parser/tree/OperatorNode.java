@@ -3,26 +3,28 @@ package edu.asu.plp.compile.parser.tree;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SequenceNode implements ParseNode
+public class OperatorNode implements ParseNode
 {
+	private String value;
 	private List<ParseNode> statements;
 	
-	public SequenceNode()
+	public OperatorNode(String value)
 	{
 		super();
+		this.value = value;
 		statements = new LinkedList<ParseNode>();
 	}
 	
 	@Override
 	public NodeType getType()
 	{
-		return NodeType.SEQUENCE;
+		return NodeType.OPERATOR;
 	}
 	
 	@Override
 	public String getValue()
 	{
-		return "";
+		return value;
 	}
 	
 	@Override
@@ -30,5 +32,4 @@ public class SequenceNode implements ParseNode
 	{
 		return statements;
 	}
-	
 }
