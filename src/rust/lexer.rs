@@ -1,4 +1,9 @@
 use std::vec::Vec;
+use regex::Regex;
+use matching::*;
+use files::*;
+use tokens::*;
+use support::*;
 
 pub fn get_token_types<'a>() -> Vec<(&'a str, &'a str)>
 {
@@ -37,4 +42,65 @@ pub fn get_token_types<'a>() -> Vec<(&'a str, &'a str)>
     token_types.push(("identifier",				r"([:alpha:]|[\$_])+([:alnum:]|[\$_])*"));
 
     token_types
+}
+
+pub fn lex_file<'a>(file_path: &str) -> Vec<Token<'a>>
+{
+    let input = read_in(file_path);
+    lex_string(input)
+}
+
+pub fn lex_string<'a>(input: String) -> Vec<Token<'a>>
+{
+    // List the first match from each matcher; the index of the match will correspond to an index in matchers
+    let mut matches: Vec<MatchResult> = Vec::new();
+    let mut tokens: Vec<Token> = Vec::new();
+
+    let token_types: Vec<(&str, &str)> = get_token_types();
+    let matchers: Vec<Regex> = assemble_matchers(&token_types);
+
+    let mut string_index = 0;
+    while string_index < input.len()
+    {
+        let string = &input[string_index..];
+        for (index, matcher) in matchers.iter().enumerate()
+        {
+            let token_name = token_types[index].0;
+            let result = matcher.find(string);
+            let match_result = MatchResult::parse(token_name, result, index);
+            matches.push(match_result);
+        }
+
+        // print matches
+        println!("\nMatches on {}:", string);
+        for result in matches.iter()
+        {
+            println!("\t{}\t({}, {})\t{}", result.token_name, result.start, result.end, result.valid);
+        }
+
+        // Find the first match and add it as a token; stop when there are no tokens to be found
+        let (valid, index) = find_first_match(&matches);
+        if valid
+        {
+            {
+                let match_result = &matches[index];
+                let start = match_result.start + string_index;
+                let end = match_result.end + string_index;
+                let value = slice_of(&input, (start, end));
+                let token = Token{name: match_result.token_name, range: (start, end), value: value};
+                string_index = end;
+                println!("\tThe dominant token is: {} at index: {} = {} with value: {}", matches[index].token_name, index, matches[index].index, token.value);
+                println!("\tRange: ({}, {})", start, end);
+                tokens.push(token);
+            }
+            matches.clear();
+        }
+        else
+        {
+            println!("no matches found");
+            break;
+        }
+    }
+
+    tokens
 }
