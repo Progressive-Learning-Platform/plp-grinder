@@ -27,26 +27,41 @@ fn main()
     println!("\n\nPerged Tokens:");
     tokens.print_to(preprocessed_output_file, true);
 
-    compile(tokens);
+    if tokens[0].value != "class"
+    {
+        panic!("Unexpected token: {}: {}", tokens[0].value, tokens[0].name);
+    }
+
+    let (last_index, asm_string) = compile_class(&tokens, 1);
 }
 
-fn compile(tokens: Vec<Token>) -> String
+fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 {
     let invalid_types = get_invalid_token_types();
     let invalid_values = get_invalid_token_values();
 
-    let min_index = 0;
+    let mut plp_string: String = String::new();
+    let mut current_index: usize = start_index;
+
+    if tokens[current_index].value != "{" { panic!("Expected '{{' received: {}", tokens[current_index].value); }
+    else { current_index += 1; }
+
     for (index, token) in tokens.iter().enumerate()
     {
-        if index < min_index
+        if index < current_index
         {
             continue;
         }
 
+        current_index = index;
+
+        // TODO: encapsulate into token_rules.validate(token)
+        // Panic! if token type is invalid
         if invalid_types.contains(&token.name)
         {
             panic!("Unsupported token type: {}", token.name);
         }
+        // Panic! if token value is invalid
         else if invalid_values.contains(&&*token.value)
         {
             panic!("Unsupported token value: {}", token.value);
@@ -55,9 +70,12 @@ fn compile(tokens: Vec<Token>) -> String
         if token.value == "class"
         {
             // parse class body
-            let (min_index, plp_code) = class_to_plp(&tokens, index);
+            let (end_index, compiled_class) = compile_class(&tokens, index + 1);
+            plp_string.push_str(&*compiled_class);
+
+            current_index = end_index;
         }
-        /*else if token.name == "type" // || token.type == "identifier"
+        else if token.name == "type" // || token.name == "identifier"
         {
             // look ahead
             // parse variable declaration
@@ -72,24 +90,11 @@ fn compile(tokens: Vec<Token>) -> String
         {
             // parse conditional
             // Unsupported for now
-        }*/
+        }
         else
         {
             panic!("Unexpected token: {}\t{}", token.name, token.value);
         }
-    }
-
-    String::new()
-}
-
-fn class_to_plp(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
-{
-    let mut plp_string: String = String::new();
-    let mut current_index: usize = start_index;
-
-    for (index, token) in tokens.iter().enumerate()
-    {
-        current_index = index;
     }
 
     (current_index + 1, plp_string)
