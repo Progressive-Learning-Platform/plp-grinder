@@ -41,4 +41,9 @@ impl<'a> Node<'a>
 	{
 		self.token.value.clone()
 	}
+
+	fn token_type(&self) -> String
+	{
+		self.token.name.to_string().clone()
+	}
 }
