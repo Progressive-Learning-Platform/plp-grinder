@@ -48,12 +48,9 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 
     for (index, token) in tokens.iter().enumerate()
     {
-        if index < current_index
-        {
-            continue;
-        }
-
-        current_index = index;
+        // Handle forward skipping
+        if index < current_index { continue; }
+        else { current_index = index; }
 
         // TODO: encapsulate into token_rules.validate(token)
         // Panic! if token type is invalid
