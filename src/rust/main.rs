@@ -90,29 +90,34 @@ fn class_to_plp(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 
 fn remove_meta(tokens: &mut Vec<Token>)
 {
+    // Indecies of tokens vector to be removed
     let mut invalid_indecies: Vec<usize> = Vec::new();
 
     let mut min_index: usize = 0;
     for (index, token) in tokens.iter().enumerate()
     {
+        // Allow forward skipping (by setting min_index)
         if index < min_index
         {
             invalid_indecies.push(index);
         }
+        // Remove imports
         else if token.name == "special.import"
         {
             invalid_indecies.push(index);
             min_index = index + 2; // skip the next token (semi-colon)
         }
+        // Remove comments
         else if token.name.starts_with("comment")
         {
             invalid_indecies.push(index);
         }
-        // Ignore all modifiers (public, private, volatile, transient, static, etc.)
+        // Remove all modifiers (public, private, volatile, transient, static, etc.)
         else if token.name.starts_with("mod")
         {
             invalid_indecies.push(index);
         }
+        // Remove package declarations
         else if token.name == "special.package"
         {
             invalid_indecies.push(index);
@@ -120,8 +125,11 @@ fn remove_meta(tokens: &mut Vec<Token>)
         }
     }
 
+    // count := how many indecies have already been removed
+    // index := the index in the original tokens vector that should be removed
     for (count, index) in invalid_indecies.iter().enumerate()
     {
+        // "index" refers to the index before any others were removed. Therefore, it must be offset by the number of removed tokens
         tokens.remove(index - count);
     }
 }
