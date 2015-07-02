@@ -1,8 +1,13 @@
 use tokens::*;
 
-pub struct Tree<'a>
+pub struct ParseTree<'a>
 {
 	pub root: Node<'a>,
+}
+
+impl<'a> ParseTree<'a>
+{
+
 }
 
 pub struct Node<'a>
@@ -13,6 +18,11 @@ pub struct Node<'a>
 
 impl<'a> Node<'a>
 {
+	fn new() -> Node
+	{
+
+	}
+
 	fn has_children(&self) -> bool
 	{
 		self.children.len() > 0
