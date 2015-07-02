@@ -27,6 +27,11 @@ fn main()
     println!("\n\nPerged Tokens:");
     tokens.print_to(preprocessed_output_file, true);
 
+    compile(tokens);
+}
+
+fn compile(tokens: Vec<Token>) -> String
+{
     let invalid_types = get_invalid_token_types();
     let invalid_values = get_invalid_token_values();
 
@@ -50,7 +55,7 @@ fn main()
         if token.value == "class"
         {
             // parse class body
-            let (string, unused) = class_to_plp(&tokens, index);
+            let (min_index, plp_code) = class_to_plp(&tokens, index);
         }
         /*else if token.name == "type" // || token.type == "identifier"
         {
@@ -73,6 +78,8 @@ fn main()
             panic!("Unexpected token: {}\t{}", token.name, token.value);
         }
     }
+
+    String::new()
 }
 
 fn class_to_plp(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
