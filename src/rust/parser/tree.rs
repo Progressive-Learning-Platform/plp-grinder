@@ -18,9 +18,13 @@ pub struct Node<'a>
 
 impl<'a> Node<'a>
 {
-	fn new() -> Node
+	fn new(token: Token<'a>) -> Node<'a>
 	{
-
+		Node
+		{
+			token: token,
+			children: Vec::new()
+		}
 	}
 
 	fn has_children(&self) -> bool
