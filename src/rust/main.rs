@@ -124,11 +124,19 @@ fn remove_meta(tokens: &mut Vec<Token>)
         // Remove all modifiers (public, private, volatile, transient, static, etc.)
         else if token.name.starts_with("mod")
         {
+            if token.name.ends_with("access")
+            {
+                continue;
+            }
             invalid_indecies.push(index);
         }
         // Remove package declarations
         else if token.name == "special.package"
         {
+            if token.name.ends_with("package")
+            {
+                continue;
+            }
             invalid_indecies.push(index);
             min_index = find_next_semicolon(tokens, index) + 1;
         }
