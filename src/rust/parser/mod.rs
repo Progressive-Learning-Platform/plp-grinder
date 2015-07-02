@@ -28,16 +28,6 @@ pub struct Variable<'a>
 	pub vtype: &'a str,
 }
 
-pub fn get_start_symbols<'a>() -> Vec<&'a str>
-{
-	// TODO: Read symbols from rules file
-    let mut start_symbols: Vec<&str> = Vec::new();
-
-	start_symbols.push("");
-
-	start_symbols
-}
-
 pub fn get_invalid_token_values<'a>() -> Vec<&'a str>
 {
     // TODO: Read invalid types from rules file
