@@ -1,17 +1,17 @@
 public class BasicArithmatic
 {
 	private static final int constant = 10;
-	
-	public static int CasualMethod()
+
+	public static int casualMethod()
 	{
 		return 1;
 	}
-	
-	public static int Sum(int a, int b)
+
+	public static int sum(int a, int b)
 	{
 		return a + b;
 	}
-	
+
 	public static void main(String[] args)
 	{
 		int a = 4;
@@ -31,10 +31,10 @@ public class BasicArithmatic
 		multiplyImmediate = multiplyImmediate << 1;
 		//multiplyImmediate++;
 		boolean test = true | false;
-		
-		
+
+
 		//CasualMethod();
-		
+
 		//Sum(a, b);
 		// DO NOT LEX
 		/* Do not lex */
@@ -43,7 +43,7 @@ public class BasicArithmatic
 		 */
 		// /**/ Do not lex 3
 		/*
-		 * 
+		 *
 		 * // */
 		// Strings are currently unsupported
 		// String s = "/*LexAstring" + lex + "LexAstring*/ LexAstring";
