@@ -6,11 +6,13 @@ mod tokens;
 mod lexer;
 mod files;
 mod parser;
+mod symbols;
 
 use std::vec::Vec;
 use tokens::*;
 use lexer::*;
 use parser::*;
+use symbols::*;
 
 fn main()
 {
@@ -27,12 +29,156 @@ fn main()
     println!("\n\nPerged Tokens:");
     tokens.print_to(preprocessed_output_file, true);
 
+    let mut symbols_table = SymbolTable::new();
+    parse_class(&tokens, 1, &mut symbols_table);
+
+
     if tokens[0].value != "class"
     {
         panic!("Unexpected token: {}: {}", tokens[0].value, tokens[0].name);
     }
 
     let (last_index, asm_string) = compile_class(&tokens, 1);
+}
+
+fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable)
+{
+    let mut static_variables: Vec<(usize, usize)> = Vec::new();
+    let mut static_methods: Vec<(usize, usize)> = Vec::new();
+    let mut static_classes: Vec<(usize, usize)> = Vec::new();
+    let mut non_static_variables: Vec<(usize, usize)> = Vec::new();
+    let mut non_static_methods: Vec<(usize, usize)> = Vec::new();
+    let mut non_static_classes: Vec<(usize, usize)> = Vec::new();
+
+    println!("\n<------------ Parse Class --------------->");
+    let mut min_value = 0;
+    let mut skip_amount = 0;
+
+    for (index, token) in tokens.iter().enumerate()
+    {
+        if min_value != 0
+        {
+            min_value -= 1;
+            continue;
+        }
+        //Static Variable/Method/Class
+        if token.name == "mod.access"
+        {
+            skip_amount = 3;
+            if tokens[index + skip_amount].name.starts_with("operator")
+            {
+                println!("------Incoming Static Variable Decl!");
+
+                let (low, high) = symbols_table.get_variable_locations(tokens, index + 1);
+                symbols_table.static_variables.push((low, high));
+
+                min_value =  low;
+                min_value -= index;
+            }
+            else if tokens[index + 1].name.starts_with("construct")
+            {
+                if tokens[index + skip_amount].name.starts_with("control")
+                {
+                    println!("------Incoming Static Class Decl!");
+                    min_value = find_outer_ending_brace(tokens, index);
+                    static_classes.push((index + 2, min_value));
+                    min_value -= index;
+                }
+                else
+                {
+                    panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+                }
+
+            }
+            else if tokens[index + skip_amount].name.starts_with("control")
+            {
+                println!("------Incoming Static Method Decl!");
+                min_value = find_outer_ending_brace(tokens, index);
+                static_methods.push((index + 1, min_value));
+                min_value -=  index;
+            }
+            else
+            {
+                panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+            }
+
+        }
+        //Non-Static Variable/Method/Class
+        else if token.name.starts_with("construct")
+        {
+            skip_amount = 2;
+            if tokens[index + skip_amount].name.starts_with("control")
+            {
+                println!("------Incoming Non-Static Class Decl!");
+                min_value = find_outer_ending_brace(tokens, index);
+                non_static_classes.push((index + 1, min_value));
+                min_value = 0;
+            }
+            else
+            {
+                panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+            }
+        }
+        //Non-Static Variable/Method/Class
+        else if token.name == "type"
+        {
+            skip_amount = 2;
+
+            if tokens[index + skip_amount].name.starts_with("control")
+            {
+                println!("------Incoming Non-Static Method Decl!");
+                min_value = find_outer_ending_brace(tokens, index);
+                non_static_methods.push((index, min_value));
+                min_value -= index;
+                //check for control
+            }
+            else if tokens[index + skip_amount].name.starts_with("operator")
+            {
+                println!("------Incoming Non-Static Variable Decl!");
+                min_value =  find_next_semicolon(tokens, index);
+                non_static_variables.push((index, min_value));
+                min_value -= index;
+            }
+        }
+        println!("\tIndex: {} | Token -> {} : {}", index, token.value, token.name );
+        //deal with parameters
+    }
+    println!("\n<---------------- Static Variables --------------->");
+    for &(start, end) in symbols_table.static_variables.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+
+    println!("\n<---------------- Static Classes ----------------->");
+    for &(start, end) in static_classes.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+
+    println!("\n<---------------- Static Methods ----------------->");
+    for &(start, end) in static_methods.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+
+    println!("\n<---------------- Non-Static Variables --------------->");
+    for &(start, end) in non_static_variables.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+
+    println!("\n<---------------- Non-Static Classes ----------------->");
+    for &(start, end) in non_static_classes.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+
+    println!("\n<---------------- Non-Static Methods ----------------->");
+    for &(start, end) in non_static_methods.iter()
+    {
+        println!("Start/End {}/{}", start, end);
+    }
+    println!("\n");
 }
 
 fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
@@ -244,6 +390,29 @@ fn find_next_semicolon(tokens: &Vec<Token>, start: usize) -> usize
     for (index, token) in tokens[start..].iter().enumerate()
     {
         if token.value == ";" { return index + start; }
+    }
+
+    return 0;
+}
+
+fn find_outer_ending_brace(tokens: &Vec<Token>, start: usize) -> usize
+{
+    let mut open_braces = 0;
+
+    for(index, token) in tokens[start..].iter().enumerate()
+    {
+        if token.value == "{"
+        {
+            open_braces += 1;
+        }
+        else if token.value == "}"
+        {
+            open_braces -= 1;
+            if open_braces == 0
+            {
+                return index + start;
+            }
+        }
     }
 
     return 0;
