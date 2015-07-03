@@ -350,7 +350,7 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_register
     (compiled_code, index + 1)
 }
 
-fn compile_arithmetic_operation(operator: &Token, operands: (&str, &str), result_register: &str) -> String
+fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str), result_register: &str) -> String
 {
     let mut compiled_code = String::new();
 
@@ -377,9 +377,9 @@ fn compile_arithmetic_operation(operator: &Token, operands: (&str, &str), result
 
     compiled_code.push_str(result_register);
     compiled_code.push_str(", ");
-    compiled_code.push_str(operands.0);
+    compiled_code.push_str(operand_registers.0);
     compiled_code.push_str(", ");
-    compiled_code.push_str(operands.1);
+    compiled_code.push_str(operand_registers.1);
     compiled_code.push_str("\n");
 
     compiled_code
