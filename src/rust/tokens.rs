@@ -9,6 +9,7 @@ pub struct Token<'a>
 
 impl <'a> Token<'a>
 {
+    #[allow(dead_code)]
     pub fn clone(&self) -> Token<'a>
     {
         Token
