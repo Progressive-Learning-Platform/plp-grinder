@@ -7,12 +7,14 @@ mod lexer;
 mod files;
 mod parser;
 mod symbols;
+mod symbol_table;
 
 use std::vec::Vec;
 use tokens::*;
 use lexer::*;
 use parser::*;
 use symbols::*;
+use symbol_table::*;
 
 fn main()
 {
@@ -340,6 +342,9 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_register
         else if operand.name.starts_with("identifier")
         {
             // TODO: lookup memory location from symbols table
+
+
+            // TODO: parse method calls
         }
 
         let line = compile_arithmetic_operation(operator, temp_registers, temp_registers.0);
