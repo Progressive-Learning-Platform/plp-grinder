@@ -292,7 +292,13 @@ fn remove_meta(tokens: &mut Vec<Token>)
     }
 }
 
-fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_registers: (&str, &str), var_registers: (&str, &str), load_registers: (&str, &str)) -> (String, usize)
+fn compile_arithmetic_statement(tokens: &Vec<Token>,
+                                start: usize,
+                                temp_registers: (&str, &str),
+                                var_registers: (&str, &str),
+                                load_registers: (&str, &str),
+                                symbols: &StaticSymbolTable)
+                                -> (String, usize)
 {
     let mut compiled_code = String::new();
     if tokens[start].value.starts_with("literal")
@@ -307,9 +313,10 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_register
     let mut index = start;
     while tokens[index].value != ";"
     {
-        while tokens[index].name == "control" // ignore parenthesis
+        if tokens[index].name == "control" // ignore parenthesis
         {
             index += 1;
+            continue;
         }
         if !tokens[index].name.starts_with("operator")
         {
@@ -318,11 +325,14 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_register
         }
 
         let operator = &tokens[index];
+        index += 1;
         while tokens[index].name == "control" // ignore parenthesis
         {
             index += 1;
         }
-        let operand = &tokens[index + 1];
+        let operand = &tokens[index];
+        index += 1;
+
         if operand.name.starts_with("literal")
         {
             // TODO: use immediate operators
@@ -334,15 +344,29 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>, start: usize, temp_register
         }
         else if operand.name.starts_with("identifier")
         {
+            let next_token = &tokens[index];
+            index += 1;
+
+            if next_token.name == "control"
+            {
+                // Method call
+            }
+            else if next_token.value == "."
+            {
+                // Accessor
+            }
+
             // TODO: lookup memory location from symbols table
 
-
             // TODO: parse method calls
+        }
+        else
+        {
+            panic!("");
         }
 
         let line = compile_arithmetic_operation(operator, temp_registers, temp_registers.0);
         compiled_code.push_str(&*line);
-        index += 2;
     }
 
     (compiled_code, index + 1)
