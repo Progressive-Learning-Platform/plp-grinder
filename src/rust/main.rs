@@ -344,16 +344,23 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>,
         }
         else if operand.name.starts_with("identifier")
         {
-            let next_token = &tokens[index];
-            index += 1;
+            let following_token = &tokens[index];
 
-            if next_token.name == "control"
+            if following_token.name == "control"
             {
                 // Method call
+                let method_call_end = identify_body_bounds(&tokens, index + 1, ("(", ")")).unwrap();
+                panic!("Method calls are unsupported");
+
             }
-            else if next_token.value == "."
+            else if following_token.value == "."
             {
                 // Accessor
+                panic!("Unsupported token: {}: {}", following_token.name, following_token.value);
+            }
+            else
+            {
+                // Variable
             }
 
             // TODO: lookup memory location from symbols table
