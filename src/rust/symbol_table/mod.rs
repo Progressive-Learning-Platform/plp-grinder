@@ -2,26 +2,46 @@
 
 pub trait StaticSymbolTable<'a>
 {
+	/// Return all symbols in this table with the specified name (in any namespace)
 	fn lookup_name(name: &str) -> Vec<Symbol<'a>>;
-	fn lookup_namespace(namespace: &str) -> Vec<Symbol<'a>>;
-	fn lookup_variable(namespace: &str, name: &str) -> Vec<Symbol<'a>>;
 
-	fn add(symbol: Symbol<'a>);
+	/// Return all symbols in this table with the specified namespace
+	fn lookup_namespace(namespace: &str) -> Vec<Symbol<'a>>;
+
+	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
+	fn lookup_variable(namespace: &str, name: &str) -> Symbol<'a>;
+
+	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
+	fn lookup_function(namespace: &str, name: &str, argument_types: &Vec<&str>) -> Symbol<'a>;
+
+	/// Adds a symbol to this table and allocates it's location
+	/// Returns true if the symbol could be added; false otherwise
+	/// Duplicate symbols are not allowed
+	/// TODO: support overloaded methods
+	fn add(class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
 }
 
 pub enum SymbolLocation<'a>
 {
+	/// Indicates that a register has been reserved for a specific use (e.g. by a variable)
 	Register { name: &'a str },
+
+	/// Indicates a location in memory
 	Memory { address: MemoryAddress<'a> },
+
+	/// Indicates that the symbol should not be accessed, as it represents a structured entity
 	Structured
 }
 
-pub enum SymbolClass
+pub enum SymbolClass<'a>
 {
-	Variable,
-	Function,
+	Variable { variable_type: &'a str },
+
+	/// Function signature //TODO: support exceptions
+	Function { return_type: &'a str, argument_types: &'a Vec<&'a str> },
+
 	/// Includes class, enum, and interface
-	Structure { subtype: String },
+	Structure { subtype: &'a str },
 }
 
 pub struct Symbol<'a>
@@ -33,10 +53,7 @@ pub struct Symbol<'a>
 	pub name: &'a str,
 
 	/// What this symbol represents (class, enum, variable, function, etc)
-	pub symbol_class: SymbolClass,
-
-	/// Type can be the return type of a method, the type of a variable, or None if it has no type (for instance if it is a class, enum, etc).
-	pub symbol_type: Option<&'a str>,
+	pub symbol_class: SymbolClass<'a>,
 
 	/// Memory location of this symbol. Methods will always map to a SymbolLocation::Memory label with a 0 offset
 	pub location: SymbolLocation<'a>,
