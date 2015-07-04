@@ -245,6 +245,13 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
     (current_index + 1, plp_string)
 }
 
+/// Removes all meta tokens from the give Vector
+/// Meta tokens include:
+/// * comments
+/// * imports
+/// * permission modifiers (public, private, protected)
+///
+/// Note that in future versions, imports will not be removed. 
 fn remove_meta(tokens: &mut Vec<Token>)
 {
     // Indecies of tokens vector to be removed
@@ -269,24 +276,10 @@ fn remove_meta(tokens: &mut Vec<Token>)
         {
             invalid_indecies.push(index);
         }
-        // Remove all modifiers (public, private, volatile, transient, static, etc.)
-        else if token.name.starts_with("mod")
+        // Remove all permission modifiers (public, private, protected)
+        else if token.name == "mod.permission"
         {
-            if token.name.ends_with("access")
-            {
-                continue;
-            }
             invalid_indecies.push(index);
-        }
-        // Remove package declarations
-        else if token.name == "special.package"
-        {
-            if token.name.ends_with("package")
-            {
-                continue;
-            }
-            invalid_indecies.push(index);
-            min_index = find_next_semicolon(tokens, index) + 1;
         }
     }
 
