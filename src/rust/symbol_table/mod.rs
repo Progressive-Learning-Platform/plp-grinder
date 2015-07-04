@@ -12,7 +12,7 @@ pub trait StaticSymbolTable<'a>
 pub enum SymbolLocation<'a>
 {
 	Register { name: &'a str },
-	Memory { location: Location<'a> },
+	Memory { address: MemoryAddress<'a> },
 	Structured
 }
 
@@ -42,7 +42,7 @@ pub struct Symbol<'a>
 	pub location: SymbolLocation<'a>,
 }
 
-pub struct Location<'a>
+pub struct MemoryAddress<'a>
 {
 	/// Label marking the base address where the symbol is stored
 	pub label_name: &'a str,
