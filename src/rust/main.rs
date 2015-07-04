@@ -251,7 +251,7 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 /// * imports
 /// * permission modifiers (public, private, protected)
 ///
-/// Note that in future versions, imports will not be removed. 
+/// Note that in future versions, imports will not be removed.
 fn remove_meta(tokens: &mut Vec<Token>)
 {
     // Indecies of tokens vector to be removed
@@ -383,6 +383,8 @@ fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str
     compiled_code
 }
 
+/// @deprecated
+/// Replaced by find_next using ";" as the symbol argument
 fn find_next_semicolon(tokens: &Vec<Token>, start: usize) -> usize
 {
     for (index, token) in tokens[start..].iter().enumerate()
@@ -393,6 +395,8 @@ fn find_next_semicolon(tokens: &Vec<Token>, start: usize) -> usize
     return 0;
 }
 
+/// @deprecated
+/// Replaced by identify_body_bounds using ("{", "}") as the symbol argument
 fn find_outer_ending_brace(tokens: &Vec<Token>, start: usize) -> usize
 {
     let mut open_braces = 0;
@@ -414,4 +418,49 @@ fn find_outer_ending_brace(tokens: &Vec<Token>, start: usize) -> usize
     }
 
     return 0;
+}
+
+/// Identifies the end index of a nestable body given the open and close symbols for the body
+/// For instance, an arithmetic expression can have nested parenthesis groups (e.g. (1 + (2*(2+1))) * (2 + 5) )
+/// In the example, this method would identify the start and stop as these (> and < respectively):
+///     >(1 + (2*(2+1)))< * (2 + 5)
+/// If the start_index was specified as the parenthesis surrounding 2 + 5, then this method would select:
+///     (1 + (2*(2+1))) * >(2 + 5)<
+///
+/// The start index passed to this method should be the index AFTER the first open symbol
+/// @return the index of the token that closes the specified body or None if the block is not closed or nested properly
+fn identify_body_bounds(tokens: &Vec<Token>, start: usize, symbols: (&str, &str)) -> Option<usize>
+{
+    let (open, close) = symbols;
+    let mut open_braces = 1;
+
+    for(index, token) in tokens[start..].iter().enumerate()
+    {
+        if token.value == open
+        {
+            open_braces += 1;
+        }
+        else if token.value == close
+        {
+            open_braces -= 1;
+            if open_braces == 0
+            {
+                return Some(index + start);
+            }
+        }
+    }
+
+    return None;
+}
+
+/// Identifies the index of the next token matching the specified symbol
+/// @return the index of the specified token (after the specified start index) or None if no such symbol exists
+fn find_next(tokens: &Vec<Token>, start: usize, symbol: &str) -> Option<usize>
+{
+    for (index, token) in tokens[start..].iter().enumerate()
+    {
+        if token.value == symbol { return Some(index + start); }
+    }
+
+    return None;
 }
