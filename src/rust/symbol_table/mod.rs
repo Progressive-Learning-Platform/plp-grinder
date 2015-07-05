@@ -20,9 +20,8 @@ pub trait StaticSymbolTable<'a>
 	/// Lookup a structure (class, enum) by its name and namespace.
 	/// Duplicate classes in the same namespace are not allowed, so the result will be unique
 	/// If no result is found in the direct namespace, the parent namespaces will be searched
-	/// @return the specified symbol AND it's specification (unwrapped, for convenience)
-	/// or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_structure(namespace: &str, name: &str) -> Option<(Symbol<'a>, Structure<'a>)>;
+	/// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
+	fn lookup_structure(namespace: &str, name: &str) -> Option<(Symbol<'a>)>;
 
 	/// Adds a symbol to this table and allocates it's location
 	/// Returns true if the symbol could be added; false otherwise
@@ -36,8 +35,11 @@ pub enum SymbolLocation<'a>
 	/// Indicates that a register has been reserved for a specific use (e.g. by a variable)
 	Register { name: &'a str },
 
-	/// Indicates a location in memory
+	/// Indicates a location in memory (e.g. for static variables)
 	Memory { address: MemoryAddress<'a> },
+
+	/// Indicates an offset location from a structured entity (e.g. a member variable of a class)
+	InstancedMemory { offset: u16 },
 
 	/// Indicates that the symbol should not be accessed, as it represents a structured entity
 	Structured
@@ -51,13 +53,7 @@ pub enum SymbolClass<'a>
 	Function { return_type: &'a str, argument_types: &'a Vec<&'a str> },
 
 	/// Includes class, enum, and interface
-	Structure { subtype: &'a str, specification: Structure<'a> },
-}
-
-pub struct Structure<'a>
-{
-	/// Map from memberName -> (mmberType, offset)
-	pub members: HashMap<&'a str, (&'a str, u16)>,
+	Structure { subtype: &'a str },
 }
 
 pub struct Symbol<'a>
