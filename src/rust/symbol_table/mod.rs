@@ -22,7 +22,7 @@ pub trait StaticSymbolTable<'a>
 	/// If no result is found in the direct namespace, the parent namespaces will be searched
 	/// @return the specified symbol AND it's specification (unwrapped, for convenience)
 	/// or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_structure(namespace: &str, name: &str) -> Option<(Symbol<'a>, Structure)>;
+	fn lookup_structure(namespace: &str, name: &str) -> Option<(Symbol<'a>, Structure<'a>)>;
 
 	/// Adds a symbol to this table and allocates it's location
 	/// Returns true if the symbol could be added; false otherwise
