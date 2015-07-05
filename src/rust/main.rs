@@ -272,6 +272,7 @@ fn compile_symbol_sequence( tokens: &Vec<Token>,
                             symbols: &StaticSymbolTable)
                             -> (String, usize)
 {
+    // TODO: handle array access
     // For method calls: Always push $this to stack if possible, and pop $this from stack when done (if it was pushed)
     // Wehn accessing, push instance to stack
 
@@ -372,89 +373,87 @@ fn compile_method_call( tokens: &Vec<Token>,
 
 fn compile_arithmetic_statement(tokens: &Vec<Token>,
                                 start: usize,
+                                current_namespace: &str,
                                 temp_registers: (&str, &str),
                                 var_registers: (&str, &str),
                                 load_registers: (&str, &str),
+                                target_register: &str,
                                 symbols: &StaticSymbolTable)
                                 -> (String, usize)
 {
-    let mut compiled_code = String::new();
-    if tokens[start].value.starts_with("literal")
-    {
-        compiled_code.push_str("li ");
-        compiled_code.push_str(temp_registers.0);
-        compiled_code.push_str(", ");
-        compiled_code.push_str(&*tokens[start].value);
-        compiled_code.push_str("\n");
-    }
-
+    // TODO: handle parenthesis and operder of operations
+    let mut plp = PLPWriter::new();
     let mut index = start;
-    while tokens[index].value != ";"
+
+    // vector to ignore parenthesis within the scope of this sequence (e.g. do not ignore parenthesis that belong to a method call)
+    let mut ignore_indices: Vec<usize> = Vec::new();
+
+    // Handle first token
+    let mut token = &tokens[start];
+    if token.name.starts_with("literal")
     {
-        if tokens[index].name == "control" // ignore parenthesis
-        {
-            index += 1;
-            continue;
-        }
-        if !tokens[index].name.starts_with("operator")
-        {
-            let current_token = &tokens[index];
-            panic!("Unexpected token while parsing arithmetic statement: {}: {}", current_token.value, current_token.name);
-        }
+        let value = &*token.value;
+        plp.li(temp_registers.0, value);
 
-        let operator = &tokens[index];
         index += 1;
-        while tokens[index].name == "control" // ignore parenthesis
+    }
+    else if token.name == "identifier"
+    {
+        // handle identifier
+        let (access_code, new_index) = compile_symbol_sequence(tokens, start, current_namespace, temp_registers, var_registers, load_registers, target_register, symbols);
+        plp.code.push_str(&*access_code);
+
+        index = new_index;
+    }
+    else if token.value == "(" || token.value == ")"
+    {
+        // TODO: determine bounds and push to ignore
+        panic!("Unexpected token: {}\t{}", token.name, token.value);
+    }
+    else
+    {
+        panic!("Unexpected token: {}\t{}", token.name, token.value);
+    }
+    token = &tokens[index];
+
+    // loop until arithmetic sequence ends
+    while token.name.starts_with("operator")
+    {
+        token = &tokens[index];
+        if token.name.starts_with("literal")
         {
-            index += 1;
+            // Load second operand into temp_registers.0 as a literal
+            let value = &token.value;
+            plp.li(temp_registers.0, &*value);
+
+            // Consume the operator AND second operand tokens
+            index += 2;
         }
-        let operand = &tokens[index];
-        index += 1;
-
-        if operand.name.starts_with("literal")
+        else if token.name == "identifier"
         {
-            // TODO: use immediate operators
-            compiled_code.push_str("li ");
-            compiled_code.push_str(temp_registers.1);
-            compiled_code.push_str(", ");
-            compiled_code.push_str(&*operand.value);
-            compiled_code.push_str("\n");
+            // Load second operand into temp_registers.0 as a variable reference
+            // TODO: don't give away temp_registers.0
+            let temp_target = temp_registers.0;
+            let (access_code, new_index) = compile_symbol_sequence(tokens, start, current_namespace, temp_registers, var_registers, load_registers, temp_target, symbols);
+            plp.code.push_str(&*access_code);
+
+            index = new_index;
         }
-        else if operand.name.starts_with("identifier")
+        else if token.value == "(" || token.value == ")"
         {
-            let following_token = &tokens[index];
-
-            if following_token.name == "control"
-            {
-                // Method call
-                let method_call_end = identify_body_bounds(&tokens, index + 1, ("(", ")")).unwrap();
-                panic!("Method calls are unsupported");
-
-            }
-            else if following_token.value == "."
-            {
-                // Accessor
-                panic!("Unsupported token: {}: {}", following_token.name, following_token.value);
-            }
-            else
-            {
-                // Variable
-            }
-
-            // TODO: lookup memory location from symbols table
-
-            // TODO: parse method calls
+            // TODO: determine bounds and push to ignore
+            panic!("Unexpected token: {}\t{}", token.name, token.value);
         }
         else
         {
-            panic!("");
+            panic!("Unexpected token: {}\t{}", token.name, token.value);
         }
 
-        let line = compile_arithmetic_operation(operator, temp_registers, temp_registers.0);
-        compiled_code.push_str(&*line);
+        // Perform the operation on the current result (target_register) and the second operand (temp_registers.0)
+        compile_arithmetic_operation(&token, (target_register, temp_registers.0), target_register);
     }
 
-    (compiled_code, index + 1)
+    (plp.code, index)
 }
 
 fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str), result_register: &str) -> String
