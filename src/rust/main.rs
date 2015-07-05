@@ -15,6 +15,7 @@ use lexer::*;
 use parser::*;
 use symbols::*;
 use symbol_table::*;
+use support::*;
 
 fn main()
 {
@@ -245,53 +246,6 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
     (current_index + 1, plp_string)
 }
 
-/// Removes all meta tokens from the give Vector
-/// Meta tokens include:
-/// * comments
-/// * imports
-/// * permission modifiers (public, private, protected)
-///
-/// Note that in future versions, imports will not be removed.
-fn remove_meta(tokens: &mut Vec<Token>)
-{
-    // Indecies of tokens vector to be removed
-    let mut invalid_indecies: Vec<usize> = Vec::new();
-
-    let mut min_index: usize = 0;
-    for (index, token) in tokens.iter().enumerate()
-    {
-        // Allow forward skipping (by setting min_index)
-        if index < min_index
-        {
-            invalid_indecies.push(index);
-        }
-        // Remove imports
-        else if token.name == "special.import"
-        {
-            invalid_indecies.push(index);
-            min_index = index + 2; // skip the next token (semi-colon)
-        }
-        // Remove comments
-        else if token.name.starts_with("comment")
-        {
-            invalid_indecies.push(index);
-        }
-        // Remove all permission modifiers (public, private, protected)
-        else if token.name == "mod.permission"
-        {
-            invalid_indecies.push(index);
-        }
-    }
-
-    // count := how many indecies have already been removed
-    // index := the index in the original tokens vector that should be removed
-    for (count, index) in invalid_indecies.iter().enumerate()
-    {
-        // "index" refers to the index before any others were removed. Therefore, it must be offset by the number of removed tokens
-        tokens.remove(index - count);
-    }
-}
-
 fn compile_arithmetic_statement(tokens: &Vec<Token>,
                                 start: usize,
                                 temp_registers: (&str, &str),
@@ -451,47 +405,49 @@ fn find_outer_ending_brace(tokens: &Vec<Token>, start: usize) -> usize
     return 0;
 }
 
-/// Identifies the end index of a nestable body given the open and close symbols for the body
-/// For instance, an arithmetic expression can have nested parenthesis groups (e.g. (1 + (2*(2+1))) * (2 + 5) )
-/// In the example, this method would identify the start and stop as these (> and < respectively):
-///     >(1 + (2*(2+1)))< * (2 + 5)
-/// If the start_index was specified as the parenthesis surrounding 2 + 5, then this method would select:
-///     (1 + (2*(2+1))) * >(2 + 5)<
+/// Removes all meta tokens from the give Vector
+/// Meta tokens include:
+/// * comments
+/// * imports
+/// * permission modifiers (public, private, protected)
 ///
-/// The start index passed to this method should be the index AFTER the first open symbol
-/// @return the index of the token that closes the specified body or None if the block is not closed or nested properly
-fn identify_body_bounds(tokens: &Vec<Token>, start: usize, symbols: (&str, &str)) -> Option<usize>
+/// Note that in future versions, imports will not be removed.
+fn remove_meta(tokens: &mut Vec<Token>)
 {
-    let (open, close) = symbols;
-    let mut open_braces = 1;
+    // Indecies of tokens vector to be removed
+    let mut invalid_indecies: Vec<usize> = Vec::new();
 
-    for(index, token) in tokens[start..].iter().enumerate()
+    let mut min_index: usize = 0;
+    for (index, token) in tokens.iter().enumerate()
     {
-        if token.value == open
+        // Allow forward skipping (by setting min_index)
+        if index < min_index
         {
-            open_braces += 1;
+            invalid_indecies.push(index);
         }
-        else if token.value == close
+        // Remove imports
+        else if token.name == "special.import"
         {
-            open_braces -= 1;
-            if open_braces == 0
-            {
-                return Some(index + start);
-            }
+            invalid_indecies.push(index);
+            min_index = index + 2; // skip the next token (semi-colon)
+        }
+        // Remove comments
+        else if token.name.starts_with("comment")
+        {
+            invalid_indecies.push(index);
+        }
+        // Remove all permission modifiers (public, private, protected)
+        else if token.name == "mod.permission"
+        {
+            invalid_indecies.push(index);
         }
     }
 
-    return None;
-}
-
-/// Identifies the index of the next token matching the specified symbol
-/// @return the index of the specified token (after the specified start index) or None if no such symbol exists
-fn find_next(tokens: &Vec<Token>, start: usize, symbol: &str) -> Option<usize>
-{
-    for (index, token) in tokens[start..].iter().enumerate()
+    // count := how many indecies have already been removed
+    // index := the index in the original tokens vector that should be removed
+    for (count, index) in invalid_indecies.iter().enumerate()
     {
-        if token.value == symbol { return Some(index + start); }
+        // "index" refers to the index before any others were removed. Therefore, it must be offset by the number of removed tokens
+        tokens.remove(index - count);
     }
-
-    return None;
 }
