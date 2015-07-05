@@ -9,10 +9,12 @@ pub trait StaticSymbolTable<'a>
 	fn lookup_namespace(namespace: &str) -> Vec<Symbol<'a>>;
 
 	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
-	fn lookup_variable(namespace: &str, name: &str) -> Symbol<'a>;
+	/// @return the specified symbol or None if the specified symbol is not in this namespace
+	fn lookup_variable(namespace: &str, name: &str) -> Option<Symbol<'a>>;
 
 	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
-	fn lookup_function(namespace: &str, name: &str, argument_types: &Vec<&str>) -> Symbol<'a>;
+	/// @return the specified symbol or None if the specified symbol is not in this namespace
+	fn lookup_function(namespace: &str, name: &str, argument_types: &Vec<&str>) -> Option<Symbol<'a>>;
 
 	/// Adds a symbol to this table and allocates it's location
 	/// Returns true if the symbol could be added; false otherwise
