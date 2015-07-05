@@ -1,19 +1,20 @@
-
+use std::collections::HashMap;
 
 pub trait StaticSymbolTable<'a>
 {
 	/// Return all symbols in this table with the specified name (in any namespace)
-	fn lookup_name(name: &str) -> Vec<Symbol<'a>>;
+	fn lookup_by_name(name: &str) -> Vec<Symbol<'a>>;
 
 	/// Return all symbols in this table with the specified namespace
-	fn lookup_namespace(namespace: &str) -> Vec<Symbol<'a>>;
+	fn lookup_by_namespace(namespace: &str) -> Vec<Symbol<'a>>;
 
 	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
 	/// @return the specified symbol or None if the specified symbol is not in this namespace
 	fn lookup_variable(namespace: &str, name: &str) -> Option<Symbol<'a>>;
 
 	/// Lookup a symbol by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
-	/// @return the specified symbol or None if the specified symbol is not in this namespace
+	/// If no result is found in the direct namespace, the parent namespaces will be searched
+	/// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
 	fn lookup_function(namespace: &str, name: &str, argument_types: &Vec<&str>) -> Option<Symbol<'a>>;
 
 	/// Adds a symbol to this table and allocates it's location
@@ -43,7 +44,13 @@ pub enum SymbolClass<'a>
 	Function { return_type: &'a str, argument_types: &'a Vec<&'a str> },
 
 	/// Includes class, enum, and interface
-	Structure { subtype: &'a str },
+	Structure { subtype: &'a str, specification: Structure<'a> },
+}
+
+pub struct Structure<'a>
+{
+	/// Map from memberName -> (mmberType, offset)
+	pub members: HashMap<&'a str, (&'a str, u16)>,
 }
 
 pub struct Symbol<'a>
