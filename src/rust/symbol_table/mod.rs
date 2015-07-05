@@ -3,43 +3,46 @@ use std::collections::HashMap;
 pub trait StaticSymbolTable<'a>
 {
 	/// Return all symbols in this table with the specified name (in any namespace)
-	fn lookup_by_name(name: &str) -> Vec<Symbol<'a>>;
+	fn lookup_by_name(&self, name: &str) -> Vec<Symbol<'a>>;
 
 	/// Return all symbols in this table with the specified namespace
-	fn lookup_by_namespace(namespace: &str) -> Vec<Symbol<'a>>;
+	fn lookup_by_namespace(&self, namespace: &str) -> Vec<Symbol<'a>>;
 
 	/// Lookup a variable by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
 	/// @return the specified symbol or None if the specified symbol is not in this namespace
-	fn lookup_variable(namespace: &str, name: &str) -> Option<Symbol<'a>>;
+	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<Symbol<'a>>;
 
 	/// Lookup a function by its name and namespace. Functions with the same signature are not allowed, so the result will be unique
 	/// If no result is found in the direct namespace, the parent namespaces will be searched
 	/// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_function(namespace: &str, name: &str, argument_types: &Vec<&str>) -> Option<Symbol<'a>>;
+	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<&str>) -> Option<Symbol<'a>>;
 
 	/// Lookup a structure (class, enum) by its name and namespace.
 	/// Duplicate classes in the same namespace are not allowed, so the result will be unique
 	/// If no result is found in the direct namespace, the parent namespaces will be searched
 	/// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_structure(namespace: &str, name: &str) -> Option<(Symbol<'a>)>;
+	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(Symbol<'a>)>;
 
 	/// Adds a symbol to this table and allocates it's location
 	/// Returns true if the symbol could be added; false otherwise
 	/// Duplicate symbols are not allowed
 	/// TODO: support overloaded methods
-	fn add(class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
+	fn add(&self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
 }
 
 pub enum SymbolLocation<'a>
 {
 	/// Indicates that a register has been reserved for a specific use (e.g. by a variable)
-	Register { name: &'a str },
+	/// tuple: (name)
+	Register(&'a str),
 
 	/// Indicates a location in memory (e.g. for static variables)
-	Memory { address: MemoryAddress<'a> },
+	/// tuple: (address)
+	Memory(MemoryAddress<'a>),
 
 	/// Indicates an offset location from a structured entity (e.g. a member variable of a class)
-	InstancedMemory { offset: u16 },
+	/// tuple: offset
+	InstancedMemory(u16),
 
 	/// Indicates that the symbol should not be accessed, as it represents a structured entity
 	Structured
