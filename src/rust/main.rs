@@ -83,7 +83,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 if tokens[index + skip_amount].name.starts_with("control")
                 {
                     println!("------Incoming Static Class Decl!");
-                    min_value = find_outer_ending_brace(tokens, index);
+                    // TODO: verify this index starts past the first open brace
+                    min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
                     static_classes.push((index + 2, min_value));
                     min_value -= index;
                 }
@@ -96,7 +97,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             else if tokens[index + skip_amount].name.starts_with("control")
             {
                 println!("------Incoming Static Method Decl!");
-                min_value = find_outer_ending_brace(tokens, index);
+                // TODO: verify this index starts past the first open brace
+                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
                 static_methods.push((index + 1, min_value));
                 min_value -=  index;
             }
@@ -113,7 +115,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             if tokens[index + skip_amount].name.starts_with("control")
             {
                 println!("------Incoming Non-Static Class Decl!");
-                min_value = find_outer_ending_brace(tokens, index);
+                // TODO: verify this index starts past the first open brace
+                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
                 non_static_classes.push((index + 1, min_value));
                 min_value = 0;
             }
@@ -130,7 +133,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             if tokens[index + skip_amount].name.starts_with("control")
             {
                 println!("------Incoming Non-Static Method Decl!");
-                min_value = find_outer_ending_brace(tokens, index);
+                // TODO: verify this index starts past the first open brace
+                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
                 non_static_methods.push((index, min_value));
                 min_value -= index;
                 //check for control
@@ -138,7 +142,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             else if tokens[index + skip_amount].name.starts_with("operator")
             {
                 println!("------Incoming Non-Static Variable Decl!");
-                min_value =  find_next_semicolon(tokens, index);
+                min_value =  find_next(tokens, index, ";").unwrap();
                 non_static_variables.push((index, min_value));
                 min_value -= index;
             }
@@ -366,43 +370,6 @@ fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str
     compiled_code.push_str("\n");
 
     compiled_code
-}
-
-/// @deprecated
-/// Replaced by find_next using ";" as the symbol argument
-fn find_next_semicolon(tokens: &Vec<Token>, start: usize) -> usize
-{
-    for (index, token) in tokens[start..].iter().enumerate()
-    {
-        if token.value == ";" { return index + start; }
-    }
-
-    return 0;
-}
-
-/// @deprecated
-/// Replaced by identify_body_bounds using ("{", "}") as the symbol argument
-fn find_outer_ending_brace(tokens: &Vec<Token>, start: usize) -> usize
-{
-    let mut open_braces = 0;
-
-    for(index, token) in tokens[start..].iter().enumerate()
-    {
-        if token.value == "{"
-        {
-            open_braces += 1;
-        }
-        else if token.value == "}"
-        {
-            open_braces -= 1;
-            if open_braces == 0
-            {
-                return index + start;
-            }
-        }
-    }
-
-    return 0;
 }
 
 /// Removes all meta tokens from the give Vector
