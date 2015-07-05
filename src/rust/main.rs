@@ -8,6 +8,7 @@ mod files;
 mod parser;
 mod symbols;
 mod symbol_table;
+mod plp;
 
 use std::vec::Vec;
 use tokens::*;
@@ -16,6 +17,7 @@ use parser::*;
 use symbols::*;
 use symbol_table::*;
 use support::*;
+use plp::PLPWriter;
 
 fn main()
 {
@@ -260,13 +262,13 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 ///
 /// The start index should be the first symbol in the sequence
 /// @return (plp_code, the first index AFTER this symbol sequence)
-fn compile_symbol_sequence(tokens: &Vec<Token>,
-                                start: usize,
-                                temp_registers: (&str, &str),
-                                var_registers: (&str, &str),
-                                load_registers: (&str, &str),
-                                symbols: &StaticSymbolTable)
-                                -> (String, usize)
+fn compile_symbol_sequence( tokens: &Vec<Token>,
+                            start: usize,
+                            temp_registers: (&str, &str),
+                            var_registers: (&str, &str),
+                            load_registers: (&str, &str),
+                            symbols: &StaticSymbolTable)
+                            -> (String, usize)
 {
     // Each element in this vec represents the start and end indecies (start_inclusive, end_exclusive) of a subsequence of this sequence
     // Each subsequence can reference either a variable (or static structure acting as a variable/namespace) or a method
@@ -314,6 +316,25 @@ fn compile_symbol_sequence(tokens: &Vec<Token>,
     // TODO: compile
 
     (code, index)
+}
+
+/// The range should start at the method identifier and end on the token AFTER the closing parenthesis
+fn compile_method_call( tokens: &Vec<Token>,
+                        range: (usize, usize),
+                        caller: Option<&str>,
+                        temp_registers: (&str, &str),
+                        var_registers: (&str, &str),
+                        load_registers: (&str, &str),
+                        symbols: &StaticSymbolTable)
+                        -> String
+{
+    let mut code: String = String::new();
+    let (start, end) = range;
+
+    let method_id = &tokens[start];
+    // TODO: determine if method is static
+
+    code
 }
 
 fn compile_arithmetic_statement(tokens: &Vec<Token>,
@@ -405,37 +426,17 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>,
 
 fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str), result_register: &str) -> String
 {
-    let mut compiled_code = String::new();
+    let mut plp = PLPWriter::new();
 
-    if operator.name != "operator.binary"
+    match &*operator.value
     {
-        panic!("Unsupported operator: {}: {}", operator.name, operator.value);
-    }
-    else if operator.value == "+"
-    {
-        compiled_code.push_str("addu ");
-    }
-    else if operator.value == "-"
-    {
-        compiled_code.push_str("subu ");
-    }
-    else if operator.value == "*"
-    {
-        compiled_code.push_str("mullo ");
-    }
-    else
-    {
-        panic!("Unsupported operator: {}: {}", operator.name, operator.value);
-    }
+        "+" => plp.addu(result_register, operand_registers.0, operand_registers.1),
+        "-" => plp.subu(result_register, operand_registers.0, operand_registers.1),
+        "*" => plp.mullo(result_register, operand_registers.0, operand_registers.1),
+         _  => panic!("Unsupported operator: {}: {}", operator.name, operator.value)
+    };
 
-    compiled_code.push_str(result_register);
-    compiled_code.push_str(", ");
-    compiled_code.push_str(operand_registers.0);
-    compiled_code.push_str(", ");
-    compiled_code.push_str(operand_registers.1);
-    compiled_code.push_str("\n");
-
-    compiled_code
+    return plp.code;
 }
 
 /// Removes all meta tokens from the give Vector
