@@ -13,7 +13,7 @@ control	;
 mod.permission	public
 mod.access	static
 type	int
-identifier	CasualMethod
+identifier	casualMethod
 control	(
 control	)
 control	{
@@ -24,7 +24,7 @@ control	}
 mod.permission	public
 mod.access	static
 type	int
-identifier	Sum
+identifier	sum
 control	(
 type	int
 identifier	a
@@ -192,7 +192,7 @@ comment.block	/*
 		 */
 comment.line	// /**/ Do not lex 3
 comment.block	/*
-		 * 
+		 *
 		 * // */
 comment.line	// Strings are currently unsupported
 comment.line	// String s = "/*LexAstring" + lex + "LexAstring*/ LexAstring";

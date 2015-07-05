@@ -2,6 +2,7 @@ construct.type	class
 identifier	BasicArithmatic
 control	{
 mod.access	static
+mod.behaviour	final
 type	int
 identifier	constant
 operator.binary	=
@@ -9,7 +10,7 @@ literal.int	10
 control	;
 mod.access	static
 type	int
-identifier	CasualMethod
+identifier	casualMethod
 control	(
 control	)
 control	{
@@ -19,7 +20,7 @@ control	;
 control	}
 mod.access	static
 type	int
-identifier	Sum
+identifier	sum
 control	(
 type	int
 identifier	a
