@@ -250,6 +250,72 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
     (current_index + 1, plp_string)
 }
 
+/// Write PLP code to evaluate the given symbol sequence, and load the result into a specific register
+/// A sequence can be:
+/// * a  simple variable reference,
+/// * a method call,
+/// * a variable accessed from another symbol (e.g. foo.bar or Foo.staticBar),
+/// * a method accessed from another symbol (e.g. foo.bar() or Foo.staticBar()), or
+/// * a complex chain of the above (e.g. foo.method().valueInReturnValue.value.method())
+///
+/// The start index should be the first symbol in the sequence
+/// @return (plp_code, the first index AFTER this symbol sequence)
+fn compile_symbol_sequence(tokens: &Vec<Token>,
+                                start: usize,
+                                temp_registers: (&str, &str),
+                                var_registers: (&str, &str),
+                                load_registers: (&str, &str),
+                                symbols: &StaticSymbolTable)
+                                -> (String, usize)
+{
+    // Each element in this vec represents the start and end indecies (start_inclusive, end_exclusive) of a subsequence of this sequence
+    // Each subsequence can reference either a variable (or static structure acting as a variable/namespace) or a method
+    // Accessor tokens (.) are not included in this stack
+    // Consequently, elements with multiple tokens are method calls; a single token means it is a variable (or class acting as a variable/namespace)
+    let mut stack: Vec<(usize, usize)> = Vec::new();
+
+    let mut code: String = String::new();
+
+    // Push sequence to stack
+    let mut subsequence_start = start;
+    let mut index = start;
+    loop
+    {
+        let token = &tokens[index];
+        if index >= tokens.len()
+        {
+            break;
+        }
+        if token.value == "."
+        {
+            let subsequence = (subsequence_start, index);
+            stack.push(subsequence);
+        }
+        else if token.name == "identifier"
+        {
+            subsequence_start = index;
+        }
+        else if token.value == "("
+        {
+            index = identify_body_bounds(&tokens, index + 1, ("(", ")")).unwrap();
+        }
+        else
+        {
+            break;
+        }
+
+        index += 1;
+    }
+    // first index AFTER the sequence
+    index += 1;
+    let subsequence = (subsequence_start, index);
+    stack.push(subsequence);
+
+    // TODO: compile
+
+    (code, index)
+}
+
 fn compile_arithmetic_statement(tokens: &Vec<Token>,
                                 start: usize,
                                 temp_registers: (&str, &str),
