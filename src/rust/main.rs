@@ -264,42 +264,70 @@ fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 /// @return (plp_code, the first index AFTER this symbol sequence)
 fn compile_symbol_sequence( tokens: &Vec<Token>,
                             start: usize,
+                            current_namespace: &str,
                             temp_registers: (&str, &str),
                             var_registers: (&str, &str),
                             load_registers: (&str, &str),
+                            target_register: &str,
                             symbols: &StaticSymbolTable)
                             -> (String, usize)
 {
-    // Each element in this vec represents the start and end indecies (start_inclusive, end_exclusive) of a subsequence of this sequence
-    // Each subsequence can reference either a variable (or static structure acting as a variable/namespace) or a method
-    // Accessor tokens (.) are not included in this stack
-    // Consequently, elements with multiple tokens are method calls; a single token means it is a variable (or class acting as a variable/namespace)
-    let mut stack: Vec<(usize, usize)> = Vec::new();
+    // For method calls: Always push $this to stack if possible, and pop $this from stack when done (if it was pushed)
+    // Wehn accessing, push instance to stack
 
-    let mut code: String = String::new();
-
-    // Push sequence to stack
-    let mut subsequence_start = start;
+    let mut plp = PLPWriter::new();
     let mut index = start;
     loop
     {
         let token = &tokens[index];
+
         if index >= tokens.len()
         {
+            // End of stream
             break;
         }
-        if token.value == "."
+        if token.name == "identifier"
         {
-            let subsequence = (subsequence_start, index);
-            stack.push(subsequence);
+            let lookahead_token = &tokens[index + 1];
+
+            // Method call
+            if lookahead_token.value == "("
+            {
+                // push $this or reference to calling object as an argument
+                plp.push(target_register);
+
+                // compile the method and append it directly to the compiled plp code
+                let method_code = compile_method_call(tokens, index, current_namespace, temp_registers, var_registers, load_registers, symbols);
+                plp.code.push_str(&*method_code);
+            }
+            // Variable read
+            else
+            {
+                let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
+                match symbol.location
+                {
+                    SymbolLocation::Register(name) => {
+                            plp.mov(target_register, name);
+                        },
+                    SymbolLocation::Memory(address) => {
+                            plp.li(load_registers.0, address.label_name);
+                            plp.lw(target_register, address.offset, load_registers.0);
+                        },
+                    SymbolLocation::InstancedMemory(offset) => {
+                            plp.lw(target_register, offset, target_register);
+                        },
+                    SymbolLocation::Structured => {
+                            // TODO: append to namespace
+                        },
+                };
+            }
         }
-        else if token.name == "identifier"
+        else if token.value == "."
         {
-            subsequence_start = index;
-        }
-        else if token.value == "("
-        {
-            index = identify_body_bounds(&tokens, index + 1, ("(", ")")).unwrap();
+            // Access references are handled when it's children are parsed (in the if block above)
+            // so skip this token
+            index += 1;
+            continue;
         }
         else
         {
@@ -310,31 +338,36 @@ fn compile_symbol_sequence( tokens: &Vec<Token>,
     }
     // first index AFTER the sequence
     index += 1;
-    let subsequence = (subsequence_start, index);
-    stack.push(subsequence);
 
     // TODO: compile
 
-    (code, index)
+    (plp.code, index)
 }
 
 /// The range should start at the method identifier and end on the token AFTER the closing parenthesis
 fn compile_method_call( tokens: &Vec<Token>,
-                        range: (usize, usize),
-                        caller: Option<&str>,
+                        start: usize,
+                        current_namespace: &str,
                         temp_registers: (&str, &str),
                         var_registers: (&str, &str),
                         load_registers: (&str, &str),
                         symbols: &StaticSymbolTable)
                         -> String
 {
-    let mut code: String = String::new();
-    let (start, end) = range;
+    let mut plp = PLPWriter::new();
+
+    // Find nested method calls
+    // Handle each argument one at a time, and push each to the stack
+
+    // TODO: determine namespace from caller and current_namespace
+    let namespace = "";
 
     let method_id = &tokens[start];
     // TODO: determine if method is static
 
-    code
+    //let method_symbol = symbols.lookup_function();
+
+    return plp.code;
 }
 
 fn compile_arithmetic_statement(tokens: &Vec<Token>,
