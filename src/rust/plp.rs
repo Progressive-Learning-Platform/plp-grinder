@@ -7,6 +7,7 @@ pub struct PLPWriter
 
 impl PLPWriter
 {
+	// TODO: implement indentation writing
 	pub fn new() -> PLPWriter
 	{
 		PLPWriter {
@@ -117,6 +118,28 @@ impl PLPWriter
 		code.push_str(&*offset.to_string());
 		code.push_str(" (");
 		code.push_str(register_address);
+		code.push_str(")\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn push(&mut self, register_target: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("push ");
+		code.push_str(register_target);
+		code.push_str(")\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn pop(&mut self, register_target: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("pop ");
+		code.push_str(register_target);
 		code.push_str(")\n");
 
 		self.code.push_str(&*code);
