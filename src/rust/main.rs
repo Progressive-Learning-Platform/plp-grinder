@@ -6,15 +6,14 @@ mod tokens;
 mod lexer;
 mod files;
 mod parser;
-mod symbols;
 mod symbol_table;
 mod plp;
 mod compiler;
 
 use std::vec::Vec;
 use tokens::*;
+use symbol_table::symbol_table::*;
 use lexer::*;
-use symbols::*;
 use support::*;
 use compiler::*;
 
@@ -33,8 +32,8 @@ fn main()
     println!("\n\nPerged Tokens:");
     tokens.print_to(preprocessed_output_file, true);
 
-    let mut symbols_table = SymbolTable::new();
-    parse_class(&tokens, 1, &mut symbols_table);
+    let mut symbols_table: SymbolTable = SymbolTable {signature: "", return_type:"", package_path: ""};
+    let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
 
     if tokens[0].value != "class"
@@ -45,14 +44,9 @@ fn main()
     let (last_index, asm_string) = compile_class(&tokens, 1);
 }
 
-fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable)
+fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
 {
-    let mut static_variables: Vec<(usize, usize)> = Vec::new();
-    let mut static_methods: Vec<(usize, usize)> = Vec::new();
-    let mut static_classes: Vec<(usize, usize)> = Vec::new();
-    let mut non_static_variables: Vec<(usize, usize)> = Vec::new();
-    let mut non_static_methods: Vec<(usize, usize)> = Vec::new();
-    let mut non_static_classes: Vec<(usize, usize)> = Vec::new();
+    let mut class_structure: ClassStructure = ClassStructure::new();
 
     println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
@@ -73,8 +67,22 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             {
                 println!("------Incoming Static Variable Decl!");
 
-                let (low, high) = symbols_table.get_variable_locations(tokens, index + 1);
-                symbols_table.static_variables.push((low, high));
+                let low = index + 1;
+                let high = find_next(tokens, low, ";").unwrap() + 1;
+
+                class_structure.static_variables.push((low, high));
+
+                min_value =  low;
+                min_value -= index;
+            }
+            else if tokens[index + skip_amount].name == "identifier"
+            {
+                //TODO account for final
+                println!("------Incoming Static Variable Decl!");
+
+                let low = index + 2;
+                let high = find_next(tokens, low, ";").unwrap() + 1;
+                class_structure.static_variables.push((low, high));
 
                 min_value =  low;
                 min_value -= index;
@@ -86,7 +94,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                     println!("------Incoming Static Class Decl!");
                     // TODO: verify this index starts past the first open brace
                     min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                    static_classes.push((index + 2, min_value));
+                    class_structure.static_classes.push((index + 2, min_value));
                     min_value -= index;
                 }
                 else
@@ -100,7 +108,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Static Method Decl!");
                 // TODO: verify this index starts past the first open brace
                 min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                static_methods.push((index + 1, min_value));
+                class_structure.static_methods.push((index + 1, min_value));
                 min_value -=  index;
             }
             else
@@ -118,7 +126,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Non-Static Class Decl!");
                 let index_after_brace = index + skip_amount + 1;
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap();
-                non_static_classes.push((index + 1, min_value));
+                class_structure.non_static_classes.push((index + 1, min_value));
+                //TODO parse_class(tokens, index, symbols_table);
                 min_value = 0;
             }
             else
@@ -136,7 +145,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Non-Static Method Decl!");
                 // TODO: verify this index starts past the first open brace
                 min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                non_static_methods.push((index, min_value));
+                class_structure.non_static_methods.push((index, min_value));
                 min_value -= index;
                 //check for control
             }
@@ -144,7 +153,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             {
                 println!("------Incoming Non-Static Variable Decl!");
                 min_value =  find_next(tokens, index, ";").unwrap();
-                non_static_variables.push((index, min_value));
+                class_structure.non_static_variables.push((index, min_value));
                 min_value -= index;
             }
         }
@@ -152,41 +161,43 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
         //deal with parameters
     }
     println!("\n<---------------- Static Variables --------------->");
-    for &(start, end) in symbols_table.static_variables.iter()
+    for &(start, end) in class_structure.static_variables.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
 
     println!("\n<---------------- Static Classes ----------------->");
-    for &(start, end) in static_classes.iter()
+    for &(start, end) in class_structure.static_classes.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
 
     println!("\n<---------------- Static Methods ----------------->");
-    for &(start, end) in static_methods.iter()
+    for &(start, end) in class_structure.static_methods.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
 
     println!("\n<---------------- Non-Static Variables --------------->");
-    for &(start, end) in non_static_variables.iter()
+    for &(start, end) in class_structure.non_static_variables.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
 
     println!("\n<---------------- Non-Static Classes ----------------->");
-    for &(start, end) in non_static_classes.iter()
+    for &(start, end) in class_structure.non_static_classes.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
 
     println!("\n<---------------- Non-Static Methods ----------------->");
-    for &(start, end) in non_static_methods.iter()
+    for &(start, end) in class_structure.non_static_methods.iter()
     {
         println!("Start/End {}/{}", start, end);
     }
     println!("\n");
+
+    class_structure
 }
 
 /// Removes all meta tokens from the give Vector
