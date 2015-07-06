@@ -5,7 +5,7 @@ use parser::*;
 use symbols::*;
 use symbol_table::*;
 use support::*;
-use plp::PLPWriter
+use plp::PLPWriter;
 
 pub fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 {
@@ -187,7 +187,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         else
         {
             // Load argument into arg_register
-            let (code, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, ("$t9", "$t8"), load_registers, arg_register, symbols);
+            let (code, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols);
             plp.code.push_str(&*code);
             index = new_index;
 
@@ -232,33 +232,38 @@ pub fn compile_method_call( tokens: &Vec<Token>,
 
 /// Future revision: @return (code, end_index, result_type)
 pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
-                                start: usize,                   // used
-                                current_namespace: &str,        // indirect
-                                temp_registers: (&str, &str),   // used
-                                load_registers: (&str, &str),
-                                target_register: &str,
-                                symbols: &StaticSymbolTable)
-                                -> (String, usize)
+	                                start: usize,                   // used
+	                                current_namespace: &str,        // indirect
+	                                temp_register: &str,   			// used
+	                                load_registers: (&str, &str),	// indirect
+	                                target_register: &str,			// used
+	                                symbols: &StaticSymbolTable)
+	                                -> (String, usize)
 {
-    // TODO: handle parenthesis and operder of operations
+    // TODO: handle parenthesis and order of operations
     let mut plp = PLPWriter::new();
 
-    // Evaluate first symbol and store it in target_register
-    let mut index = compile_evaluation(tokens, start, current_namespace, temp_registers.0, load_registers, target_register, symbols, &mut plp);
+    // Evaluate first symbol and store it in target_register, then push the result to the stack
+    let mut index = compile_evaluation(tokens, start, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
+	plp.push(target_register);
 
     // loop until arithmetic sequence ends
-    let mut operator_token = &tokens[index];
-    while operator_token.name.starts_with("operator")
+	let operator_token = &tokens[index];
+    if operator_token.name.starts_with("operator")
     {
-        // PRESUMPTION: The first operand is stored in target_register
+        // PRESUMPTION: The first operand is at the top of the stack
 
-        // Evaluate the second operand and store the result in temp_registers.1
-        // Do not alter target_register
-        index = compile_evaluation(tokens, index + 1, current_namespace, temp_registers.0, load_registers, temp_registers.1, symbols, &mut plp);
+        // Evaluate the second operand and store the result in temp_register
+        let (code, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
+		index = new_index;
+		plp.code.push_str(&*code);
 
-        // Perform the operation on the current result (target_register) and the second operand (temp_registers.1)
-        compile_arithmetic_operation(&operator_token, (target_register, temp_registers.1), target_register);
-        operator_token = &tokens[index];
+		// Retreive the first operand from the stack and store it in target_register
+		plp.pop(target_register);
+
+        // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
+        let code = compile_arithmetic_operation(&operator_token, (target_register, temp_register), target_register);
+		plp.code.push_str(&*code);
     }
 
     (plp.code, index)
