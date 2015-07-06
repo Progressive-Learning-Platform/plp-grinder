@@ -106,7 +106,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             }
             else
             {
-                panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+                panic!("Unsupported or Unexpected token: {}: {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
             }
 
         }
@@ -117,8 +117,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             if tokens[index + skip_amount].name.starts_with("control")
             {
                 println!("------Incoming Non-Static Class Decl!");
-                // TODO: verify this index starts past the first open brace
-                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
+                let index_after_brace = index + skip_amount + 1;
+                min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap();
                 non_static_classes.push((index + 1, min_value));
                 min_value = 0;
             }
