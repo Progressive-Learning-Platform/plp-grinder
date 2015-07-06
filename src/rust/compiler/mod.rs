@@ -1,7 +1,6 @@
 use std::vec::Vec;
 use tokens::*;
 use lexer::*;
-use parser::*;
 use symbol_table::*;
 use support::*;
 use plp::PLPWriter;
@@ -103,8 +102,9 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             if lookahead_token.value == "("
             {
                 // compile the method and append it directly to the compiled plp code
-                let (method_code, return_type) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
+                let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
+                index = new_index;
             }
             // Variable read
             else
@@ -126,6 +126,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             // TODO: append to namespace
                         },
                 };
+
+                index += 1;
             }
         }
         else if token.value == "."
@@ -139,8 +141,6 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         {
             break;
         }
-
-        index += 1;
     }
     // first index AFTER the sequence
     index += 1;
@@ -150,15 +150,16 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     (plp.code, index)
 }
 
-/// The range should start at the method identifier and end on the token AFTER the closing parenthesis
-/// @return (code, return_type)
+/// The range should start at the method identifier
+/// The returned end_index will be the index AFTER the closing parenthesis
+/// @return (code, return_type, end_index)
 pub fn compile_method_call( tokens: &Vec<Token>,
                             start: usize,
                             current_namespace: &str,
                             arg_register: &str,
                             load_registers: (&str, &str),
                             symbols: &StaticSymbolTable)
-                            -> (String, String)
+                            -> (String, String, usize)
 {
     let mut plp = PLPWriter::new();
 
@@ -238,7 +239,8 @@ pub fn compile_method_call( tokens: &Vec<Token>,
             },
     };
 
-    return (plp.code, return_type.to_string());
+    //Return index AFTER the closing parenthesis
+    return (plp.code, return_type.to_string(), end_index + 1);
 }
 
 /// @return (code, result_type, end_index)
