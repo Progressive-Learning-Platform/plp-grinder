@@ -169,7 +169,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     let end_index = identify_body_bounds(&tokens, index, ("(", ")")).unwrap();
 
     // TODO: Keep track of argument types, in order, to determine the method signature
-    let mut argument_types: Vec<&str> = Vec::new();
+    let mut argument_types: Vec<String> = Vec::new();
 
     while index < end_index
     {
@@ -191,11 +191,11 @@ pub fn compile_method_call( tokens: &Vec<Token>,
             plp.code.push_str(&*code);
             index = new_index;
 
+            // Push argument_type to argument_types
+            argument_types.push(argument_type.clone());
+
             // Push argument to the stack
             plp.push(arg_register);
-
-            // Push argument_type to argument_types
-            argument_types.push(&*argument_type);
         }
     }
 
@@ -211,6 +211,16 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     // TODO: if function is non-static, push $this to stack
 
     let method_symbol = symbols.lookup_function(namespace, method_name, &argument_types).unwrap();
+    let return_type = match method_symbol.symbol_class
+    {
+        SymbolClass::Variable(variable_type) => {
+                panic!("Expected Function found Variable");
+            },
+        SymbolClass::Function(return_type, argument_types) => return_type,
+        SymbolClass::Structure(subtype) => {
+                panic!("Expected Function found Structure");
+            }
+    };
     match method_symbol.location
     {
         SymbolLocation::Register(name) => {
@@ -228,7 +238,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
             },
     };
 
-    return plp.code;
+    return (plp.code, return_type.to_string());
 }
 
 /// @return (code, result_type, end_index)
@@ -256,7 +266,7 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
         // PRESUMPTION: The first operand is at the top of the stack
 
         // Evaluate the second operand and store the result in temp_register
-        let (code, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
+        let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
 		index = new_index;
 		plp.code.push_str(&*code);
 
@@ -268,6 +278,7 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 		plp.code.push_str(&*code);
     }
 
+    // TODO: determine real type instead of "Number"
     (plp.code, "Number".to_string(),index)
 }
 
