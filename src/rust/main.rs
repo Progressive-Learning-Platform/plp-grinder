@@ -64,12 +64,13 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             skip_amount = 3;
             if tokens[index + skip_amount].name.starts_with("operator")
             {
+                //TODO account for final
                 println!("------Incoming Static Variable Decl!");
 
                 let low = index + 1;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
-                class_structure.static_variables.push((low, high));
+                class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 2].value.clone()));
 
                 min_value =  low;
                 min_value -= index;
@@ -81,7 +82,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
 
                 let low = index + 2;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
-                class_structure.static_variables.push((low, high));
+                class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 3].value.clone()));
 
                 min_value =  low;
                 min_value -= index;
@@ -90,25 +91,26 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             {
                 if tokens[index + skip_amount].name.starts_with("control")
                 {
+                    //TODO account for final
                     println!("------Incoming Static Class Decl!");
-                    // TODO: verify this index starts past the first open brace
-                    min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                    class_structure.static_classes.push((index + 2, min_value));
-                    min_value -= index;
+                    let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                    min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+                    class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone()));
+                    min_value -= index + 1;
                 }
                 else
                 {
                     panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
                 }
-
             }
             else if tokens[index + skip_amount].name.starts_with("control")
             {
+                //TODO account for final
                 println!("------Incoming Static Method Decl!");
-                // TODO: verify this index starts past the first open brace
-                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                class_structure.static_methods.push((index + 1, min_value));
-                min_value -=  index;
+                let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+                class_structure.static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone()));
+                min_value -=  index + 1;
             }
             else
             {
@@ -122,10 +124,11 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             skip_amount = 2;
             if tokens[index + skip_amount].name.starts_with("control")
             {
+                //TODO account for final
                 println!("------Incoming Non-Static Class Decl!");
                 let index_after_brace = index + skip_amount + 1;
-                min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap();
-                class_structure.non_static_classes.push((index + 1, min_value));
+                min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
+                class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone()));
                 //TODO parse_class(tokens, index, symbols_table);
                 min_value = 0;
             }
@@ -141,58 +144,60 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
 
             if tokens[index + skip_amount].name.starts_with("control")
             {
+                //TODO account for final
                 println!("------Incoming Non-Static Method Decl!");
-                // TODO: verify this index starts past the first open brace
-                min_value = identify_body_bounds(tokens, index, ("{", "}")).unwrap();
-                class_structure.non_static_methods.push((index, min_value));
-                min_value -= index;
+                let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+                class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 1].value.clone()));
+                min_value -= index + 1;
                 //check for control
             }
             else if tokens[index + skip_amount].name.starts_with("operator")
             {
+                //TODO account for final
                 println!("------Incoming Non-Static Variable Decl!");
-                min_value =  find_next(tokens, index, ";").unwrap();
-                class_structure.non_static_variables.push((index, min_value));
-                min_value -= index;
+                min_value =  find_next(tokens, index, ";").unwrap() + 1;
+                class_structure.non_static_variables.push(MemberBlock (index, min_value, tokens[index + 1].value.clone()));
+                min_value -= index + 1;
             }
         }
         println!("\tIndex: {} | Token -> {} : {}", index, token.value, token.name );
         //deal with parameters
     }
     println!("\n<---------------- Static Variables --------------->");
-    for &(start, end) in class_structure.static_variables.iter()
+    for member_block in class_structure.static_variables.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Static Classes ----------------->");
-    for &(start, end) in class_structure.static_classes.iter()
+    for member_block in class_structure.static_classes.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Static Methods ----------------->");
-    for &(start, end) in class_structure.static_methods.iter()
+    for member_block in class_structure.static_methods.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Non-Static Variables --------------->");
-    for &(start, end) in class_structure.non_static_variables.iter()
+    for member_block in class_structure.non_static_variables.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Non-Static Classes ----------------->");
-    for &(start, end) in class_structure.non_static_classes.iter()
+    for member_block in class_structure.non_static_classes.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Non-Static Methods ----------------->");
-    for &(start, end) in class_structure.non_static_methods.iter()
+    for member_block in class_structure.non_static_methods.iter()
     {
-        println!("Start/End {}/{}", start, end);
+        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
     println!("\n");
 
