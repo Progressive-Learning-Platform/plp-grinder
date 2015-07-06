@@ -129,7 +129,7 @@ impl PLPWriter
 		let mut code = String::new();
 		code.push_str("push ");
 		code.push_str(register_target);
-		code.push_str(")\n");
+		code.push_str("\n");
 
 		self.code.push_str(&*code);
 		return code;
@@ -140,7 +140,30 @@ impl PLPWriter
 		let mut code = String::new();
 		code.push_str("pop ");
 		code.push_str(register_target);
-		code.push_str(")\n");
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn call(&mut self, function_label: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("call ");
+		code.push_str(function_label);
+		code.push_str("\n");
+		code.push_str("nop");
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn nop(&mut self) -> String
+	{
+		let mut code = String::new();
+		code.push_str("nop");
+		code.push_str("\n");
 
 		self.code.push_str(&*code);
 		return code;
