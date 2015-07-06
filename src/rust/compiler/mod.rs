@@ -103,7 +103,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             if lookahead_token.value == "("
             {
                 // compile the method and append it directly to the compiled plp code
-                let method_code = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
+                let (method_code, return_type) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
             }
             // Variable read
@@ -151,13 +151,14 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 }
 
 /// The range should start at the method identifier and end on the token AFTER the closing parenthesis
+/// @return (code, return_type)
 pub fn compile_method_call( tokens: &Vec<Token>,
-                        start: usize,
-                        current_namespace: &str,
-                        arg_register: &str,
-                        load_registers: (&str, &str),
-                        symbols: &StaticSymbolTable)
-                        -> String
+                            start: usize,
+                            current_namespace: &str,
+                            arg_register: &str,
+                            load_registers: (&str, &str),
+                            symbols: &StaticSymbolTable)
+                            -> (String, String)
 {
     let mut plp = PLPWriter::new();
 
@@ -186,14 +187,15 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         else
         {
             // Load argument into arg_register
-            let (code, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols);
+            let (code, argument_type, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols);
             plp.code.push_str(&*code);
             index = new_index;
 
             // Push argument to the stack
             plp.push(arg_register);
 
-            // TODO: push argument_type to argument_types
+            // Push argument_type to argument_types
+            argument_types.push(&*argument_type);
         }
     }
 
@@ -229,17 +231,18 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     return plp.code;
 }
 
-/// Future revision: @return (code, end_index, result_type)
+/// @return (code, result_type, end_index)
 pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                start: usize,                   // used
 	                                current_namespace: &str,        // indirect
 	                                temp_register: &str,   			// used
 	                                load_registers: (&str, &str),	// indirect
 	                                target_register: &str,			// used
-	                                symbols: &StaticSymbolTable)
-	                                -> (String, usize)
+	                                symbols: &StaticSymbolTable)	// indirect
+	                                -> (String, String, usize)
 {
-    // TODO: handle parenthesis and order of operations
+    // TODO: handle parenthesis
+    // TODO: handle order of operations
     let mut plp = PLPWriter::new();
 
     // Evaluate first symbol and store it in target_register, then push the result to the stack
@@ -265,25 +268,29 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 		plp.code.push_str(&*code);
     }
 
-    (plp.code, index)
+    (plp.code, "Number".to_string(),index)
 }
 
-/// Writes plp code to evaluate a value triggered by the start token
+/// Evaluates either a literal, or a sequence of symbols (variables, accessors, method calls, etc)
+///
+/// Writes to the specified PLPWriter code to evaluate a value triggered by the start token
 /// If the token is a literal, the literal value will be loaded into the target_register
 /// If the token is an identifier, it will be evaluated based on what the symbol represents
 /// * If the symbol represents a method, the method will be called and the result stored in target_register
 /// * If the symbol represents a variable, or a chain of accessors, the sequence will be evaluated and the result stored in target_register
 ///
 /// This method will compile plp code directly to a PLPWriter as specified
+///
+/// @return
 pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
-                        start: usize,                   // used
-                        current_namespace: &str,        // indirect-------------
-                        temp_register: &str,            // used
-                        load_registers: (&str, &str),   // indirect-------------
-                        target_register: &str,          // used
-                        symbols: &StaticSymbolTable,    // indirect-------------
-                        plp: &mut PLPWriter)            // used
-                        -> usize
+                            start: usize,                   // used
+                            current_namespace: &str,        // indirect-------------
+                            temp_register: &str,            // used
+                            load_registers: (&str, &str),   // indirect-------------
+                            target_register: &str,          // used
+                            symbols: &StaticSymbolTable,    // indirect-------------
+                            plp: &mut PLPWriter)            // used
+                            -> usize
 {
     let mut token = &tokens[start];
     let mut end_index = start;
