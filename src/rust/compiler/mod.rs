@@ -2,7 +2,6 @@ use std::vec::Vec;
 use tokens::*;
 use lexer::*;
 use parser::*;
-use symbols::*;
 use symbol_table::*;
 use support::*;
 use plp::PLPWriter;
