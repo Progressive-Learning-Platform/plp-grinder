@@ -1,3 +1,4 @@
+pub mod symbol_table;
 use std::collections::HashMap;
 
 pub trait StaticSymbolTable<'a>
