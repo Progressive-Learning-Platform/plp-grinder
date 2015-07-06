@@ -5,7 +5,6 @@ mod support;
 mod tokens;
 mod lexer;
 mod files;
-mod parser;
 mod symbol_table;
 mod plp;
 mod compiler;
