@@ -272,8 +272,6 @@ fn compile_symbol_sequence( tokens: &Vec<Token>,
                             -> (String, usize)
 {
     // TODO: handle array access
-    // For method calls: Always push $this to stack if possible, and pop $this from stack when done (if it was pushed)
-    // Wehn accessing, push instance to stack
 
     let mut plp = PLPWriter::new();
     let mut index = start;
@@ -288,9 +286,6 @@ fn compile_symbol_sequence( tokens: &Vec<Token>,
             // Method call
             if lookahead_token.value == "("
             {
-                // push $this or reference to calling object as an argument
-                plp.push(target_register);
-
                 // compile the method and append it directly to the compiled plp code
                 let method_code = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
@@ -343,7 +338,7 @@ fn compile_symbol_sequence( tokens: &Vec<Token>,
 fn compile_method_call( tokens: &Vec<Token>,
                         start: usize,
                         current_namespace: &str,
-                        temp_register: &str,
+                        arg_register: &str,
                         load_registers: (&str, &str),
                         symbols: &StaticSymbolTable)
                         -> String
@@ -351,15 +346,38 @@ fn compile_method_call( tokens: &Vec<Token>,
     let mut plp = PLPWriter::new();
 
     // start at the token AFTER the open parenthesis
-    let index = start + 2;
+    let mut index = start + 2;
+
+    // Index OF the closing parenthesis
     let end_index = identify_body_bounds(&tokens, index, ("(", ")")).unwrap();
+
+    // TODO: Keep track of argument types, in order, to determine the method signature
+    let mut argument_types: Vec<&str> = Vec::new();
 
     while index < end_index
     {
         let token = &tokens[index];
         if token.value == "("
         {
+            panic!("Parenthesis surrounding expression currently unsupported");
+        }
+        else if token.value == ","
+        {
+            // Skip commas, arguments are separated by the stack divisors
+            index += 1;
+            continue;
+        }
+        else
+        {
+            // Load argument into arg_register
+            let (code, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, ("$t9", "$t8"), load_registers, arg_register, symbols);
+            plp.code.push_str(&*code);
+            index = new_index;
 
+            // Push argument to the stack
+            plp.push(arg_register);
+
+            // TODO: push argument_type to argument_types
         }
     }
 
@@ -370,17 +388,36 @@ fn compile_method_call( tokens: &Vec<Token>,
     let namespace = "";
 
     let id_token = &tokens[start];
+    let method_name = &*id_token.value;
     // TODO: determine if method is static
+    // TODO: if function is non-static, push $this to stack
 
-    //let method_symbol = symbols.lookup_function();
+    let method_symbol = symbols.lookup_function(namespace, method_name, &argument_types).unwrap();
+    match method_symbol.location
+    {
+        SymbolLocation::Register(name) => {
+                panic!("Found method at a Register instead of a constant Memory address");
+            },
+        SymbolLocation::Memory(address) => {
+                plp.call(address.label_name);
+            },
+        SymbolLocation::InstancedMemory(offset) => {
+                panic!("Found method at InstancedMemory instead of a constant Memory address");
+            },
+        SymbolLocation::Structured => {
+                // TODO: call constructor
+                panic!("Constructors currently unsupported");
+            },
+    };
 
     return plp.code;
 }
 
-fn compile_arithmetic_statement(tokens: &Vec<Token>,
-                                start: usize,
-                                current_namespace: &str,
-                                temp_registers: (&str, &str),
+/// Future revision: @return (code, end_index, result_type)
+fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
+                                start: usize,                   // used
+                                current_namespace: &str,        // indirect
+                                temp_registers: (&str, &str),   // used
                                 load_registers: (&str, &str),
                                 target_register: &str,
                                 symbols: &StaticSymbolTable)
@@ -417,14 +454,14 @@ fn compile_arithmetic_statement(tokens: &Vec<Token>,
 /// * If the symbol represents a variable, or a chain of accessors, the sequence will be evaluated and the result stored in target_register
 ///
 /// This method will compile plp code directly to a PLPWriter as specified
-fn compile_evaluation(  tokens: &Vec<Token>,
-                        start: usize,
-                        current_namespace: &str,
-                        temp_register: &str,
-                        load_registers: (&str, &str),
-                        target_register: &str,
-                        symbols: &StaticSymbolTable,
-                        plp: &mut PLPWriter)
+fn compile_evaluation(  tokens: &Vec<Token>,            // used
+                        start: usize,                   // used
+                        current_namespace: &str,        // indirect-------------
+                        temp_register: &str,            // used
+                        load_registers: (&str, &str),   // indirect-------------
+                        target_register: &str,          // used
+                        symbols: &StaticSymbolTable,    // indirect-------------
+                        plp: &mut PLPWriter)            // used
                         -> usize
 {
     let mut token = &tokens[start];
@@ -433,7 +470,7 @@ fn compile_evaluation(  tokens: &Vec<Token>,
     if token.name.starts_with("literal")
     {
         let value = &*token.value;
-        plp.li(temp_register, value);
+        plp.li(target_register, value);
 
         end_index += 1;
     }
