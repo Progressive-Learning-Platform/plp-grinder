@@ -16,7 +16,7 @@ pub trait StaticSymbolTable<'a>
 	/// Lookup a function by its name and namespace. Functions with the same signature are not allowed, so the result will be unique
 	/// If no result is found in the direct namespace, the parent namespaces will be searched
 	/// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<&str>) -> Option<Symbol<'a>>;
+	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<Symbol<'a>>;
 
 	/// Lookup a structure (class, enum) by its name and namespace.
 	/// Duplicate classes in the same namespace are not allowed, so the result will be unique
@@ -51,13 +51,15 @@ pub enum SymbolLocation<'a>
 
 pub enum SymbolClass<'a>
 {
-	Variable { variable_type: &'a str },
+	/// (variable_type)
+	Variable(&'a str),
 
-	/// Function signature //TODO: support exceptions
-	Function { return_type: &'a str, argument_types: &'a Vec<&'a str> },
+	/// Function signature (return_type, argument_types) //TODO: support exceptions
+	Function(&'a str, &'a Vec<&'a str>),
 
 	/// Includes class, enum, and interface
-	Structure { subtype: &'a str },
+	/// (subtype)
+	Structure(&'a str),
 }
 
 pub struct Symbol<'a>
