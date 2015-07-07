@@ -1,5 +1,5 @@
 use symbol_table::*;
-use std::collections::HashMap;
+use support::*;
 
 //TODO change String to Symbol
 pub struct MemberBlock (pub usize, pub usize, pub String);
@@ -145,7 +145,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Function(return_type, arguments) => return Some((symbol).clone()),
+                                SymbolClass::Function(return_type, arguments, static_label, static_length) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -203,22 +203,40 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     /// Returns true if the symbol could be added; false otherwise
     /// Duplicate symbols are not allowed
     /// TODO: support overloaded methods
-	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool
+	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
     {
+        let mut static_label = namespace.replace(".", "_").clone();
+        static_label.push_str("_static");
+        let mut method_namespace = namespace.replace(".", "_").clone();
+        method_namespace.push_str("_");
+        method_namespace.push_str(name);
+
         //TODO add return false
         let mut location: SymbolLocation = match class
         {
             //TODO replace with storing logic
             SymbolClass::Structure(sub_type) => SymbolLocation::Structured,
-            SymbolClass::Variable(variable_type) => SymbolLocation::Structured,
-            SymbolClass::Function(return_type, arguments) => SymbolLocation::Structured,
+            SymbolClass::Variable(variable_type) => match in_method
+                {
+                    true => match is_parameter
+                        {
+                            true => SymbolLocation::MethodArgument(parameter_offset),
+                            false =>SymbolLocation::Memory(MemoryAddress {label_name: static_label, offset: static_variable_count * 4}),
+                        },
+                    false => match is_static
+                        {
+                            true => SymbolLocation::Memory(MemoryAddress {label_name: static_label, offset: static_variable_count * 4}),
+                            false => SymbolLocation::InstancedMemory(local_variable_count * 4),
+                        },
+                },
+            SymbolClass::Function(return_type, arguments, static_label, static_length) => SymbolLocation::Memory(MemoryAddress {label_name: method_namespace, offset: 0}),
         };
 
         let mut symbol: Symbol =  Symbol
         {
             name: name,
             namespace: namespace,
-            is_static: false,
+            is_static: is_static,
             symbol_class: class,
             location: location,
         };

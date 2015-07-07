@@ -11,6 +11,7 @@ mod compiler;
 
 use std::vec::Vec;
 use tokens::*;
+use symbol_table::Symbol;
 use symbol_table::symbol_table::*;
 use lexer::*;
 use support::*;
@@ -34,7 +35,6 @@ fn main()
     let mut symbols_table: SymbolTable = SymbolTable::new();
     let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
-
     if tokens[0].value != "class"
     {
         panic!("Unexpected token: {}: {}", tokens[0].value, tokens[0].name);
@@ -46,6 +46,8 @@ fn main()
 fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
 {
     let mut class_structure: ClassStructure = ClassStructure::new();
+    let mut current_namespace = "";
+
 
     println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
@@ -70,6 +72,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let low = index + 1;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
+                parse_variable(tokens, index, symbols_table, high, current_namespace.to_string());
+
                 class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 2].value.clone()));
 
                 min_value =  low;
@@ -82,6 +86,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
 
                 let low = index + 2;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
+
+                parse_variable(tokens, index, symbols_table, high, current_namespace.to_string());
+
                 class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 3].value.clone()));
 
                 min_value =  low;
@@ -109,6 +116,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Static Method Decl!");
                 let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+
+                parse_method(tokens, index, symbols_table, min_value, current_namespace.to_string());
+
                 class_structure.static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone()));
                 min_value -=  index + 1;
             }
@@ -127,6 +137,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 //TODO account for final
                 println!("------Incoming Non-Static Class Decl!");
                 let index_after_brace = index + skip_amount + 1;
+                current_namespace = &*tokens[index + 1].value;
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
                 class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone()));
                 //TODO parse_class(tokens, index, symbols_table);
@@ -148,6 +159,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Non-Static Method Decl!");
                 let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+
+                parse_method(tokens, index, symbols_table, min_value, current_namespace.to_string());
+
                 class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 1].value.clone()));
                 min_value -= index + 1;
                 //check for control
@@ -157,6 +171,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 //TODO account for final
                 println!("------Incoming Non-Static Variable Decl!");
                 min_value =  find_next(tokens, index, ";").unwrap() + 1;
+
+                parse_variable(tokens, index, symbols_table, min_value, current_namespace.to_string());
+
                 class_structure.non_static_variables.push(MemberBlock (index, min_value, tokens[index + 1].value.clone()));
                 min_value -= index + 1;
             }
@@ -164,7 +181,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
         println!("\tIndex: {} | Token -> {} : {}", index, token.value, token.name );
         //deal with parameters
     }
-    println!("\n<---------------- Static Variables --------------->");
+    println!("\n<                 Class Overview                  >");
+    println!("<---------------- Static Variables --------------->");
     for member_block in class_structure.static_variables.iter()
     {
         println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
@@ -202,6 +220,34 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
     println!("\n");
 
     class_structure
+}
+
+fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
+{
+    println!("---Current Token on parse_method: {}/{}/{}", start_index, tokens[start_index].value, tokens[start_index + 2].value);
+    for(index, token) in tokens[start_index..].iter().enumerate()
+    {
+        if(index + start_index >= end_index)
+        {
+            break;
+        }
+
+    }
+}
+
+fn parse_variable(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
+{
+    println!("---Current Token on parse_variable: {}/{}/{}/namespace: {}", start_index, tokens[start_index].value, tokens[start_index + 2].value, current_namespace);
+    let mut symbol: Symbol;
+    for(index, token) in tokens[start_index..].iter().enumerate()
+    {
+        if(index + start_index >= end_index)
+        {
+            break;
+        }
+
+
+    }
 }
 
 /// Removes all meta tokens from the give Vector
