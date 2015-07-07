@@ -1,9 +1,12 @@
 use symbol_table::*;
+use std::collections::HashMap;
 
+//TODO change String to Symbol
 pub struct MemberBlock (pub usize, pub usize, pub String);
 
 pub struct ClassStructure
 {
+    //TODO add constructor vector
     pub static_variables: Vec<MemberBlock>,
     pub static_methods: Vec<MemberBlock>,
     pub static_classes: Vec<MemberBlock>,
@@ -32,15 +35,7 @@ impl ClassStructure
 
 pub struct SymbolTable<'a>
 {
-    pub signature: Symbol<'a>,
-
-    pub local_variables: Vec<Symbol<'a>>,
-    pub local_functions: Vec<Symbol<'a>>,
-    pub local_structures: Vec<Symbol<'a>>,
-
-    pub static_variables: Vec<Symbol<'a>>,
-    pub static_functions: Vec<Symbol<'a>>,
-    pub static_structures: Vec<Symbol<'a>>,
+    children_scopes: Vec<Symbol<'a>>,
 }
 
 impl<'a> SymbolTable<'a>
@@ -49,54 +44,186 @@ impl<'a> SymbolTable<'a>
     {
         SymbolTable
         {
-            signature: Symbol {namespace: "", name: "", symbol_class: SymbolClass::Structure(""), location: SymbolLocation::Structured},
-
-            static_variables: Vec::new(),
-            static_functions: Vec::new(),
-            static_structures: Vec::new(),
-
-            local_variables: Vec::new(),
-            local_functions: Vec::new(),
-            local_structures: Vec::new(),
+            children_scopes: Vec::new(),
         }
     }
 }
 
 impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
 {
-    fn lookup_by_name(&self, name: &str) -> Vec<Symbol<'a>>
+    /// Return all symbols in this table with the specified name (in any namespace)
+    fn lookup_by_name(&self, name: &str) -> Vec<&Symbol<'a>>
     {
-        let temp: Vec<Symbol<'a>> = Vec::new();
-        temp
-    }
-
-	fn lookup_by_namespace(&self, namespace: &str) -> Vec<Symbol<'a>>
-    {
-        let temp: Vec<Symbol<'a>> = Vec::new();
-        temp
-    }
-
-	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<Symbol<'a>>
-    {
-        for symbol in self.local_variables.iter()
+        let mut symbols: Vec<&Symbol<'a>> = Vec::new();
+        for symbol in self.children_scopes.iter()
         {
+            if symbol.name == name
+            {
+                symbols.push(symbol.clone());
+            }
+        }
+        symbols
+    }
 
+    /// Return all symbols in this table with the specified namespace
+	fn lookup_by_namespace(&self, namespace: &str) -> Vec<&Symbol<'a>>
+    {
+        let mut symbols: Vec<&Symbol<'a>> = Vec::new();
+        for symbol in self.children_scopes.iter()
+        {
+            if symbol.namespace == namespace
+            {
+                symbols.push(symbol.clone());
+            }
+        }
+        symbols
+    }
+
+    /// Lookup a variable by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
+    /// @return the specified symbol or None if the specified symbol is not in this namespace
+	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol<'a>>
+    {
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut length;
+        let mut current_namespace;
+
+        loop
+        {
+            current_namespace = namespaces.connect(".");
+
+            if namespaces.is_empty()
+            {
+                break;
+            }
+            else
+            {
+                for symbol in self.lookup_by_namespace(&*current_namespace).iter()
+                {
+                    if symbol.namespace == current_namespace
+                    {
+                        if symbol.name == name
+                        {
+                            match symbol.symbol_class
+                            {
+                                SymbolClass::Variable(variable_type) => return Some((symbol).clone()),
+                                _ => continue,
+                            };
+                        }
+                    }
+                }
+                length = namespaces.len();
+                namespaces.remove(length - 1);
+            }
         }
         None
     }
 
-	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<Symbol<'a>>
+    /// Lookup a function by its name and namespace. Functions with the same signature are not allowed, so the result will be unique
+    /// If no result is found in the direct namespace, the parent namespaces will be searched
+    /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
+	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol<'a>>
     {
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut length;
+        let mut current_namespace;
+
+        loop
+        {
+            current_namespace = namespaces.connect(".");
+
+            if namespaces.is_empty()
+            {
+                break;
+            }
+            else
+            {
+                for symbol in self.lookup_by_namespace(&*current_namespace).iter()
+                {
+                    if symbol.namespace == current_namespace
+                    {
+                        if symbol.name == name
+                        {
+                            match symbol.symbol_class
+                            {
+                                SymbolClass::Function(return_type, arguments) => return Some((symbol).clone()),
+                                _ => continue,
+                            };
+                        }
+                    }
+                }
+                length = namespaces.len();
+                namespaces.remove(length - 1);
+            }
+        }
         None
     }
 
-	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(Symbol<'a>)>
+    /// Lookup a structure (class, enum) by its name and namespace.
+    /// Duplicate classes in the same namespace are not allowed, so the result will be unique
+    /// If no result is found in the direct namespace, the parent namespaces will be searched
+    /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
+	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol<'a>)>
     {
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut length;
+        let mut current_namespace;
+
+        loop
+        {
+            current_namespace = namespaces.connect(".");
+
+            if namespaces.is_empty()
+            {
+                break;
+            }
+            else
+            {
+                for symbol in self.lookup_by_namespace(&*current_namespace).iter()
+                {
+                    if symbol.namespace == current_namespace
+                    {
+                        if symbol.name == name
+                        {
+                            match symbol.symbol_class
+                            {
+                                SymbolClass::Structure(sub_type) => return Some((symbol).clone()),
+                                _ => continue,
+                            };
+                        }
+                    }
+                }
+                length = namespaces.len();
+                namespaces.remove(length - 1);
+            }
+        }
         None
     }
 
-	fn add(&self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool
+    /// Adds a symbol to this table and allocates it's location
+    /// Returns true if the symbol could be added; false otherwise
+    /// Duplicate symbols are not allowed
+    /// TODO: support overloaded methods
+	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool
     {
-        false
+        //TODO add return false
+        let mut location: SymbolLocation = match class
+        {
+            //TODO replace with storing logic
+            SymbolClass::Structure(sub_type) => SymbolLocation::Structured,
+            SymbolClass::Variable(variable_type) => SymbolLocation::Structured,
+            SymbolClass::Function(return_type, arguments) => SymbolLocation::Structured,
+        };
+
+        let mut symbol: Symbol =  Symbol
+        {
+            name: name,
+            namespace: namespace,
+            is_static: false,
+            symbol_class: class,
+            location: location,
+        };
+
+        self.children_scopes.push(symbol);
+        return true;
     }
 }

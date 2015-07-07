@@ -28,7 +28,7 @@ pub trait StaticSymbolTable<'a>
 	/// Returns true if the symbol could be added; false otherwise
 	/// Duplicate symbols are not allowed
 	/// TODO: support overloaded methods
-	fn add(&self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
+	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
 }
 
 pub enum SymbolLocation<'a>
