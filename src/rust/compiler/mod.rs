@@ -134,6 +134,10 @@ pub fn compile_statement(   tokens: &Vec<Token>,
                     SymbolLocation::InstancedMemory(offset) => {
                             plp.lw(target_register, offset, target_register);
                         },
+                    SymbolLocation::MethodArgument(offset) => {
+                            //TODO: account for method argument
+                            panic!("compile_statment: method arguments currently unsupported!");
+                        },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
                         },
@@ -223,6 +227,10 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                     SymbolLocation::InstancedMemory(offset) => {
                             plp.lw(target_register, offset, target_register);
+                        },
+                    SymbolLocation::MethodArgument(offset) => {
+                            //TODO: account for method argument
+                            panic!("compile_symbol_sequence: method arguments currently unsupported!");
                         },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
@@ -331,6 +339,10 @@ pub fn compile_method_call( tokens: &Vec<Token>,
             },
         SymbolLocation::InstancedMemory(offset) => {
                 panic!("Found method at InstancedMemory instead of a constant Memory address");
+            },
+        SymbolLocation::MethodArgument(offset) => {
+                //TODO: account for method argument
+                panic!("compile_method_call: method arguments currently unsupported!");
             },
         SymbolLocation::Structured => {
                 // TODO: call constructor
