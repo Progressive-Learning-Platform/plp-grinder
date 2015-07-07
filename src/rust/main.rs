@@ -40,7 +40,7 @@ fn main()
         panic!("Unexpected token: {}: {}", tokens[0].value, tokens[0].name);
     }
 
-    let (last_index, asm_string) = compile_class(&tokens, 1);
+    // let (last_index, asm_string) = compile_class(&tokens, 1);
 }
 
 fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
@@ -216,19 +216,23 @@ fn remove_meta(tokens: &mut Vec<Token>)
     // Indecies of tokens vector to be removed
     let mut invalid_indecies: Vec<usize> = Vec::new();
 
-    let mut min_index: usize = 0;
+    let invalid_types = get_invalid_token_types();
+    let invalid_values = get_invalid_token_values();
+
     for (index, token) in tokens.iter().enumerate()
     {
-        // Allow forward skipping (by setting min_index)
-        if index < min_index
+        // Panic on invalid tokens
+        if invalid_types.contains(&token.name) || invalid_values.contains(&&*token.value)
         {
-            invalid_indecies.push(index);
+            panic!("Unsupported token: {}: {}", token.value, token.name);
         }
         // Remove imports
         else if token.name == "special.import"
         {
+            // invalidate import
             invalid_indecies.push(index);
-            min_index = index + 2; // skip the next token (semi-colon)
+            // invalidate the semi-colon after the semi-colon
+            invalid_indecies.push(index + 1);
         }
         // Remove comments
         else if token.name.starts_with("comment")
