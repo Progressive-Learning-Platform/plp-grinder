@@ -96,7 +96,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     {
         let token = &tokens[index];
 
-        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static
+        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
         if token.name == "identifier"
         {
             let lookahead_token = &tokens[index + 1];
@@ -182,11 +182,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     while index < end_index
     {
         let token = &tokens[index];
-        if token.value == "("
-        {
-            panic!("Parenthesis surrounding expression currently unsupported");
-        }
-        else if token.value == ","
+        if token.value == ","
         {
             // Skip commas, arguments are separated by the stack divisors
             index += 1;
@@ -215,10 +211,10 @@ pub fn compile_method_call( tokens: &Vec<Token>,
 
     let id_token = &tokens[start];
     let method_name = &*id_token.value;
-    // TODO: determine if method is static
-    // TODO: if function is non-static, push $this to stack
 
     let method_symbol = symbols.lookup_function(namespace, method_name, &argument_types).unwrap();
+    // TODO: determine if method is static
+    // TODO: if function is non-static, push $this to stack
     let return_type = match method_symbol.symbol_class
     {
         SymbolClass::Variable(variable_type) => {
