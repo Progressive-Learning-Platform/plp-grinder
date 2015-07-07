@@ -88,12 +88,15 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 {
     // TODO: handle array access
 
+    // TODO: push $this to stack
+
     let mut plp = PLPWriter::new();
     let mut index = start;
     while index < (tokens.len() - 1)
     {
         let token = &tokens[index];
 
+        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static
         if token.name == "identifier"
         {
             let lookahead_token = &tokens[index + 1];
@@ -105,6 +108,9 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
                 index = new_index;
+
+                // TODO: pop previous reference from stack
+                // TODO: if next token is "." then push value to stack
             }
             // Variable read
             else
@@ -127,6 +133,9 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                 };
 
+                // TODO: pop previous reference from stack
+                // TODO: if next token is "." then push value to stack
+
                 index += 1;
             }
         }
@@ -144,8 +153,6 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     }
     // first index AFTER the sequence
     index += 1;
-
-    // TODO: compile
 
     (plp.code, index)
 }
@@ -253,35 +260,50 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                symbols: &StaticSymbolTable)	// indirect
 	                                -> (String, String, usize)
 {
-    // TODO: handle parenthesis
     // TODO: handle order of operations
     let mut plp = PLPWriter::new();
+    let first_token = &tokens[start];
 
-    // Evaluate first symbol and store it in target_register, then push the result to the stack
-    let mut index = compile_evaluation(tokens, start, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
-	plp.push(target_register);
-
-    // loop until arithmetic sequence ends
-	let operator_token = &tokens[index];
-    if operator_token.name.starts_with("operator")
+    if first_token.value == "("
     {
-        // PRESUMPTION: The first operand is at the top of the stack
-
-        // Evaluate the second operand and store the result in temp_register
-        let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
-		index = new_index;
-		plp.code.push_str(&*code);
-
-		// Retreive the first operand from the stack and store it in target_register
-		plp.pop(target_register);
-
-        // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
-        let code = compile_arithmetic_operation(&operator_token, (target_register, temp_register), target_register);
-		plp.code.push_str(&*code);
+        let (code, result_type, end_index) = compile_arithmetic_statement(tokens, start + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
+        // Return index AFTER closing parenthesis
+        return (code, result_type, end_index + 1);
     }
+    else
+    {
+        // Evaluate first symbol and store it in target_register, then push the result to the stack
+        let mut index = compile_evaluation(tokens, start, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
+    	plp.push(target_register);
 
-    // TODO: determine real type instead of "Number"
-    (plp.code, "Number".to_string(),index)
+        // loop until arithmetic sequence ends
+    	let operator_token = &tokens[index];
+        if operator_token.name.starts_with("operator")
+        {
+            // PRESUMPTION: The first operand is at the top of the stack
+
+            // Evaluate the second operand and store the result in temp_register
+            let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
+    		index = new_index;
+    		plp.code.push_str(&*code);
+
+    		// Retreive the first operand from the stack and store it in target_register
+    		plp.pop(target_register);
+
+            // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
+            let code = compile_arithmetic_operation(&operator_token, (target_register, temp_register), target_register);
+    		plp.code.push_str(&*code);
+
+            // push the value to the stack, for the next operand
+            plp.push(target_register);
+        }
+
+        // Load the final result into target_register
+        plp.pop(target_register);
+
+        // TODO: determine real type instead of "Number"
+        return (plp.code, "Number".to_string(),index);
+    }
 }
 
 /// Evaluates either a literal, or a sequence of symbols (variables, accessors, method calls, etc)
