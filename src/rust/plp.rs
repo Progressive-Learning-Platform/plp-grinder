@@ -1,7 +1,13 @@
 pub struct PLPWriter
 {
+	/// If true, tabs will be used to indent. Else, spaces will be used to indent
 	pub use_tabs: bool,
+
+	/// Number of indent characters to prefix each line of code with.
+	/// Adjusting this value will not affect code that has already been written
 	pub indent_level: u16,
+
+	/// PLP output of this writer
 	pub code: String,
 }
 
