@@ -45,6 +45,8 @@ pub enum SymbolLocation<'a>
 	/// tuple: offset
 	InstancedMemory(u16),
 
+	MethodArgument(u16),
+
 	/// Indicates that the symbol should not be accessed, as it represents a structured entity
 	Structured
 }
