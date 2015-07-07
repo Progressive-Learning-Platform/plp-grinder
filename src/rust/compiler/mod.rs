@@ -121,7 +121,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                     SymbolLocation::Register(name) => {
                             plp.mov(target_register, name);
                         },
-                    SymbolLocation::Memory(address) => {
+                    SymbolLocation::Memory(ref address) => {
                             plp.li(load_registers.0, address.label_name);
                             plp.lw(target_register, address.offset, load_registers.0);
                         },
@@ -230,7 +230,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         SymbolLocation::Register(name) => {
                 panic!("Found method at a Register instead of a constant Memory address");
             },
-        SymbolLocation::Memory(address) => {
+        SymbolLocation::Memory(ref address) => {
                 plp.call(address.label_name);
             },
         SymbolLocation::InstancedMemory(offset) => {
