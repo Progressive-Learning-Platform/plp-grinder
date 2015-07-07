@@ -28,7 +28,7 @@ pub trait StaticSymbolTable<'a>
 	/// Returns true if the symbol could be added; false otherwise
 	/// Duplicate symbols are not allowed
 	/// TODO: support overloaded methods
-	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str) -> bool;
+	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool;
 }
 
 pub enum SymbolLocation<'a>
@@ -39,7 +39,7 @@ pub enum SymbolLocation<'a>
 
 	/// Indicates a location in memory (e.g. for static variables)
 	/// tuple: (address)
-	Memory(MemoryAddress<'a>),
+	Memory(MemoryAddress),
 
 	/// Indicates an offset location from a structured entity (e.g. a member variable of a class)
 	/// tuple: offset
@@ -57,7 +57,7 @@ pub enum SymbolClass<'a>
 	Variable(&'a str),
 
 	/// Function signature (return_type, argument_types) //TODO: support exceptions
-	Function(&'a str, &'a Vec<&'a str>),
+	Function(&'a str, &'a Vec<&'a str>, &'a str, usize),
 
 	/// Includes class, enum, and interface
 	/// (subtype)
@@ -81,10 +81,10 @@ pub struct Symbol<'a>
 	pub location: SymbolLocation<'a>,
 }
 
-pub struct MemoryAddress<'a>
+pub struct MemoryAddress
 {
 	/// Label marking the base address where the symbol is stored
-	pub label_name: &'a str,
+	pub label_name: String,
 
 	/// Offset from the base address to access the symbol. Methods will always have an offset of 0
 	pub offset: u16,

@@ -324,7 +324,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         SymbolClass::Variable(variable_type) => {
                 panic!("Expected Function found Variable");
             },
-        SymbolClass::Function(return_type, argument_types) => return_type,
+        SymbolClass::Function(return_type, argument_types, static_label, static_length) => return_type,
         SymbolClass::Structure(subtype) => {
                 panic!("Expected Function found Structure");
             }
