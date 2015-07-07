@@ -53,3 +53,22 @@ pub fn find_next(tokens: &Vec<Token>, start: usize, symbol: &str) -> Option<usiz
 
     return None;
 }
+
+pub fn alter_string(original_string: &str, delimiter: &str, join_symbol: &str, string_added: &str, remove: bool) -> String
+{
+    let mut string: Vec<&str> = original_string.split_terminator(delimiter).collect();
+    let mut length = string.len();
+    let mut result: String;
+
+    if remove
+    {
+        string.remove(length - 1);
+    }
+    else
+    {
+        string.push(string_added);
+    }
+    
+    result = string.connect(join_symbol);
+    return result;
+}
