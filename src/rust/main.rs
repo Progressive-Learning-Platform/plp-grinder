@@ -31,7 +31,7 @@ fn main()
     println!("\n\nPerged Tokens:");
     tokens.print_to(preprocessed_output_file, true);
 
-    let mut symbols_table: SymbolTable = SymbolTable {signature: "", return_type:"", package_path: ""};
+    let mut symbols_table: SymbolTable = SymbolTable::new();
     let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
 
