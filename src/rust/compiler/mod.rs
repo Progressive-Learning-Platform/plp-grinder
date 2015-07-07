@@ -5,48 +5,45 @@ use symbol_table::*;
 use support::*;
 use plp::PLPWriter;
 
-pub fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
+/// range should start ON the open brace for the method body, and
+/// range should end ON the closing brace for the method body
+pub fn compile_method_body( tokens: &Vec<Token>,
+                            range: (usize, usize),
+                            method_symbol: &Symbol,
+                            current_namespace: &str,
+                            registers: (&str, &str, &str, &str),
+                            symbol_table: &StaticSymbolTable)
 {
-    let invalid_types = get_invalid_token_types();
-    let invalid_values = get_invalid_token_values();
+    let (start_index, end_index) = range;
 
     let mut plp_string: String = String::new();
-    let mut current_index: usize = start_index;
+    let mut index: usize = start_index;
 
-    if tokens[current_index].value != "{" { panic!("Expected '{{' received: {}", tokens[current_index].value); }
-    else { current_index += 1; }
+    if tokens[start_index].value != "{" { panic!("Expected '{{' received: {}", tokens[start_index].value); }
+    else { index += 1; }
 
-    for (index, token) in tokens.iter().enumerate()
+    // ASSUMPTION: before calling a method:
+    // * a reference of the caller or $0 (if the method is called statically) will be pushed to the stack
+    // * all arguments for the method will be pushed to the stack
+    // * the stack pointer $sp at the top of the argument stack will be passed to $a0
+
+    // Methods will store their argument pointer in static memory directly above the method body
+
+    while index < end_index
     {
-        // Handle forward skipping
-        if index < current_index { continue; }
-        else { current_index = index; }
-
-        // TODO: encapsulate into token_rules.validate(token)
-        // Panic! if token type is invalid
-        if invalid_types.contains(&token.name)
-        {
-            panic!("Unsupported token type: {}", token.name);
-        }
-        // Panic! if token value is invalid
-        else if invalid_values.contains(&&*token.value)
-        {
-            panic!("Unsupported token value: {}", token.value);
-        }
+        let token = &tokens[index];
 
         if token.value == "class"
         {
-            // parse class body
-            let (end_index, compiled_class) = compile_class(&tokens, index + 1);
-            plp_string.push_str(&*compiled_class);
-
-            current_index = end_index;
+            panic!("Unexpected token: {}\t{}", token.name, token.value);
+        }
+        else if token.value == "{"
+        {
+            panic!("Nested scopes currently unsupported");
         }
         else if token.name == "type" // || token.name == "identifier"
         {
-            // look ahead
-            // parse variable declaration
-            // OR parse method declaration
+            panic!("Local variable declarations currently unsupported");
         }
         else if token.value == "if"
         {
@@ -62,9 +59,108 @@ pub fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
         {
             panic!("Unexpected token: {}\t{}", token.name, token.value);
         }
+
+        index += 1;
+    }
+}
+
+pub fn compile_conditional( tokens: &Vec<Token>,
+                            start: usize,
+                            current_namespace: &str,
+                            temp_register: &str, // indirect
+                            load_registers: (&str, &str),
+                            target_register: &str,
+                            symbols: &StaticSymbolTable)
+                            -> (String, usize)
+{
+    let mut plp = PLPWriter::new();
+    let mut index = start;
+    while index < (tokens.len() - 1)
+    {
+        let token = &tokens[index];
+
     }
 
-    (current_index + 1, plp_string)
+    // first index AFTER the sequence
+    index += 1;
+
+    (plp.code, index)
+}
+
+pub fn compile_statement(   tokens: &Vec<Token>,
+                            start: usize,
+                            current_namespace: &str,
+                            temp_register: &str, // indirect
+                            load_registers: (&str, &str),
+                            target_register: &str,
+                            symbols: &StaticSymbolTable)
+                            -> (String, usize)
+{
+    let mut plp = PLPWriter::new();
+    let mut index = start;
+    while index < (tokens.len() - 1)
+    {
+        let token = &tokens[index];
+
+        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
+        if token.name == "identifier"
+        {
+            let lookahead_token = &tokens[index + 1];
+
+            // Method call
+            if lookahead_token.value == "("
+            {
+                // compile the method and append it directly to the compiled plp code
+                let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
+                plp.code.push_str(&*method_code);
+                index = new_index;
+
+                // TODO: pop previous reference from stack
+                // TODO: if next token is "." then push value to stack
+            }
+            // Variable read
+            else
+            {
+                let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
+                match symbol.location
+                {
+                    SymbolLocation::Register(name) => {
+                            plp.mov(target_register, name);
+                        },
+                    SymbolLocation::Memory(ref address) => {
+                            plp.li(load_registers.0, address.label_name);
+                            plp.lw(target_register, address.offset, load_registers.0);
+                        },
+                    SymbolLocation::InstancedMemory(offset) => {
+                            plp.lw(target_register, offset, target_register);
+                        },
+                    SymbolLocation::Structured => {
+                            // TODO: append to namespace
+                        },
+                };
+
+                // TODO: pop previous reference from stack
+                // TODO: if next token is "." then push value to stack
+
+                index += 1;
+            }
+        }
+        else if token.value == "."
+        {
+            // Access references are handled when it's children are parsed (in the if block above)
+            // so skip this token
+            index += 1;
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+    // first index AFTER the sequence
+    index += 1;
+
+    (plp.code, index)
 }
 
 /// Write PLP code to evaluate the given symbol sequence, and load the result into a specific register
@@ -78,13 +174,13 @@ pub fn compile_class(tokens: &Vec<Token>, start_index: usize) -> (usize, String)
 /// The start index should be the first symbol in the sequence
 /// @return (plp_code, the first index AFTER this symbol sequence)
 pub fn compile_symbol_sequence( tokens: &Vec<Token>,
-                            start: usize,
-                            current_namespace: &str,
-                            temp_register: &str, // indirect
-                            load_registers: (&str, &str),
-                            target_register: &str,
-                            symbols: &StaticSymbolTable)
-                            -> (String, usize)
+                                start: usize,
+                                current_namespace: &str,
+                                temp_register: &str,
+                                load_registers: (&str, &str),
+                                target_register: &str,
+                                symbols: &StaticSymbolTable)
+                                -> (String, usize)
 {
     // TODO: handle array access
 
