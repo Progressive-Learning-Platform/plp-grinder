@@ -56,7 +56,7 @@ pub enum SymbolClass<'a>
 	/// (variable_type)
 	Variable(&'a str),
 
-	/// Function signature (return_type, argument_types) //TODO: support exceptions
+	/// Function signature (return_type, argument_types, static_memory_label, static_memory_size (in words)) //TODO: support exceptions
 	Function(&'a str, &'a Vec<&'a str>, &'a str, usize),
 
 	/// Includes class, enum, and interface
