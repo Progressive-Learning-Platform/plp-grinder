@@ -6,7 +6,7 @@ use support::*;
 use plp::PLPWriter;
 
 /// range should start ON the open brace for the method body, and
-/// range should end ON the closing brace for the method body
+/// range should end AFTER the closing brace for the method body
 pub fn compile_method_body( tokens: &Vec<Token>,
                             range: (usize, usize),
                             method_symbol: &Symbol,
@@ -29,6 +29,18 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     let mut return_label = method_name.clone();
     return_label.push_str("_return");
 
+    let (memory_label, memory_size) = match method_symbol.symbol_class {
+            SymbolClass::Variable(ref variable_type) => {
+                    panic!("Expected Function found Variable");
+                },
+            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (label_name, var_count as u16),
+            SymbolClass::Structure(ref subtype) => {
+                    panic!("Expected Function found Structure");
+                }
+        };
+    plp.label(memory_label);
+    plp.space(memory_size);
+
     plp.label(&*method_name);
     compile_save_method_state(method_symbol, (registers.0, registers.1), &mut plp);
 
@@ -44,36 +56,40 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     realz_namespace.push_str("_");
     realz_namespace.push_str(&*method_symbol.name);
 
-    println!("End found: {}", end_index);
+    println!("compile_method_body: Start: {} End: {}", start_index, end_index);
     while index < end_index - 1
     {
         let token = &tokens[index];
+        println!("compile_method_body: compiling token | {} | {}: {}", index, token.value, token.name);
 
-        println!("compile {}", index);
         if token.value == "return"
         {
-            println!("return {}", index);
+            println!("compile_method_body: return token found at {}", index);
 
             let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
                                                                                 index + 1,
                                                                                 &*realz_namespace,
                                                                                 registers.0,
                                                                                 (registers.1, registers.2),
-                                                                                "v0",
+                                                                                "$v0",
                                                                                 symbol_table);
             plp.code.push_str(&*code);
             // TODO: validate return type
             plp.j(&*return_label);
             index = end_index;
+            println!("compile_method_body: new index is {}", index);
         }
         else
         {
+            println!("compile_method_body: statement found at {}", index);
             let (code, end_index) = compile_statement(tokens, index, method_symbol, &*realz_namespace, registers, symbol_table);
             plp.code.push_str(&*code);
             index = end_index;
+            println!("compile_method_body: new index is {}", index);
         }
     }
 
+    println!("\n");
     plp.label(&*return_label);
     compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
     plp.ret();
@@ -232,13 +248,14 @@ pub fn compile_statement(   tokens: &Vec<Token>,
     while index < tokens.len()
     {
         let token = &tokens[index];
-        println!("Parsing {}: {} {}", index, token.value, token.name);
+        println!("compile_statement: processing token at {} | {}: {}", index, token.value, token.name);
         if token.value == "{"
         {
             panic!("compile_statement: Nested scopes currently unsupported");
         }
         else if token.value == ";"
         {
+            println!("compile_statement: found semi-colon; breaking");
             // Index AFTER the last token in this statement
             index += 1;
             break;
@@ -246,7 +263,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         else if token.name == "type" // || token.name == "identifier"
         {
             // IGNORE
-            println!("Ignoring {}", index);
+            println!("compile_statement:ignoring token at {}", index);
             index += 1;
         }
         else if token.name.starts_with("literal") // || token.name == "identifier"
@@ -272,11 +289,11 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         }
         else if token.name == "construct.type"
         {
-            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}\t{}", token.name, token.value);
+            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}: {}", token.value, token.name);
         }
         else if token.name == "identifier"
         {
-            println!("Ident {} {}", index, token.value);
+            println!("compile_statement: found identifier {} | {}: {}", index, token.value, token.name);
             // TODO: determine memory location of nested access
             let (code, new_index) = compile_symbol_sequence(tokens,
                                                             index,
@@ -287,11 +304,12 @@ pub fn compile_statement(   tokens: &Vec<Token>,
                                                             Some(address_register),
                                                             symbol_table);
             plp.code.push_str(&*code);
-            println!("Sequence ended at {}", new_index);
             index = new_index;
+            println!("compile_statement: new index is {}", index);
         }
         else if token.value == "="
         {
+            println!("compile_statement: found assignment {} | {}: {}", index, token.value, token.name);
             plp.push(address_register);
             let (code, result_type, new_index) = compile_arithmetic_statement(  tokens,
                                                                                 index + 1,
@@ -304,6 +322,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
             plp.pop(address_register);
             plp.sw(target_register, 0, address_register);
             index = new_index;
+            println!("compile_statement: new index is {}", index);
         }
         else if token.value == "+="
         {
@@ -367,21 +386,25 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     let mut valid_address = false;
 
     // Save call buffer
-    plp.lw(load_registers.0, 0, "call_buffer");
+    plp.li(load_registers.0, "call_buffer");
+    plp.lw(load_registers.0, 0, load_registers.0);
     plp.push(load_registers.0);
 
     while index < (tokens.len() - 1)
     {
         let token = &tokens[index];
+        println!("\tcompile_symbol_sequence: processing token at {} | {}: {}", index, token.value, token.name);
 
         // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
         if token.name == "identifier"
         {
+            println!("\tcompile_symbol_sequence: identifier found at {}", index);
             let lookahead_token = &tokens[index + 1];
 
             // Method call
             if lookahead_token.value == "("
             {
+                println!("\tcompile_symbol_sequence: identifier represents method call");
                 // compile the method and append it directly to the compiled plp code
                 let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
@@ -395,19 +418,20 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             // Variable read
             else
             {
-                println!("1 {} {}", current_namespace, &*token.value);
+                println!("\tcompile_symbol_sequence: identifier represents variable read");
+                println!("\tcompile_symbol_sequence: symbol lookup: {} : {}", current_namespace, &*token.value);
                 let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
                 valid_address = false;
                 match symbol.location
                 {
                     SymbolLocation::Register(ref name) => {
                             plp.mov(target_register, name);
-                            println!("{}: Register", &*token.value);
+                            println!("\tcompile_symbol_sequence: found {}: Register", &*token.value);
                         },
                     SymbolLocation::Memory(ref address) => {
                             plp.li(load_registers.0, &*address.label_name);
                             plp.lw(target_register, address.offset, load_registers.0);
-                            println!("{}: Memory Address", &*token.value);
+                            println!("\tcompile_symbol_sequence: found {}: Memory Address", &*token.value);
 
                             match address_register
                             {
@@ -430,24 +454,27 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             plp.lw(load_registers.0, offset, load_registers.0);
 
                             plp.lw(target_register, offset, load_registers.0);
-                            println!("{}: InstancedMemory", &*token.value);
+                            println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             //TODO: account for method argument
                             panic!("compile_symbol_sequence: method arguments currently unsupported!");
-                            println!("{}: MethodArgument", &*token.value);
+                            println!("\tcompile_symbol_sequence: found {}: MethodArgument", &*token.value);
                         },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
-                            println!("{}: Strcutured", &*token.value);
+                            println!("\tcompile_symbol_sequence: found {}: Strcutured", &*token.value);
                         },
                 };
 
                 // Load result into call buffer, for next token
-                plp.sw(target_register, 0, "call_buffer");
+                plp.li(load_registers.0, "call_buffer");
+                plp.sw(target_register, 0, load_registers.0);
 
                 index += 1;
             }
+
+            println!("\tcompile_symbol_sequence: new index: {}", index);
         }
         else if token.value == "."
         {
@@ -461,12 +488,11 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             break;
         }
     }
-    // first index AFTER the sequence
-    index += 1;
 
     // Restore previous call_buffer
+    plp.li(load_registers.1, "call_buffer");
     plp.pop(load_registers.0);
-    plp.sw(load_registers.0, 0, "call_buffer");
+    plp.sw(load_registers.0, 0, load_registers.1);
 
     if !valid_address
     {
@@ -581,53 +607,62 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                temp_register: &str,   			// used
 	                                load_registers: (&str, &str),	// indirect
 	                                target_register: &str,			// used
-	                                symbols: &StaticSymbolTable)	// indirect
+	                                symbols: &StaticSymbolTable,	// indirect
+                                    )
 	                                -> (String, String, usize)
 {
     // TODO: handle order of operations
     let mut plp = PLPWriter::new();
-    let first_token = &tokens[start];
+    let mut index = start;
+    let token = &tokens[index];
 
-    if first_token.value == "("
+    println!("\tcompile_arithmetic_statement: Received {} | {}: {}", index, token.value, token.name);
+
+    // Evaluate first symbol and store it in target_register, then push the result to the stack
+
+    if token.value == "("
     {
-        let (code, result_type, end_index) = compile_arithmetic_statement(tokens, start + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
-        // Return index AFTER closing parenthesis
-        return (code, result_type, end_index + 1);
+        // TODO: verify result type
+        // Begin evaluation AFTER the parenthesis
+        let (code, result_type, end_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols);
+        plp.code.push_str(&*code);
+        plp.push(target_register);
+        // Continue parsing AFTER closing parenthesis
+        index = end_index + 1;
     }
     else
     {
-        // Evaluate first symbol and store it in target_register, then push the result to the stack
-        let mut index = compile_evaluation(tokens, start, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
+        index = compile_evaluation(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
     	plp.push(target_register);
-
-        // loop until arithmetic sequence ends
-    	let operator_token = &tokens[index];
-        if operator_token.name.starts_with("operator")
-        {
-            // PRESUMPTION: The first operand is at the top of the stack
-
-            // Evaluate the second operand and store the result in temp_register
-            let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, temp_register, symbols);
-    		index = new_index;
-    		plp.code.push_str(&*code);
-
-    		// Retreive the first operand from the stack and store it in target_register
-    		plp.pop(target_register);
-
-            // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
-            let code = compile_arithmetic_operation(&operator_token, (target_register, temp_register), target_register);
-    		plp.code.push_str(&*code);
-
-            // push the value to the stack, for the next operand
-            plp.push(target_register);
-        }
-
-        // Load the final result into target_register
-        plp.pop(target_register);
-
-        // TODO: determine real type instead of "Number"
-        return (plp.code, "Number".to_string(),index);
     }
+
+    // Recurse until arithmetic sequence ends (e.g. sees a non-oporator pattern)
+	let operator_token = &tokens[index];
+    if operator_token.name.starts_with("operator")
+    {
+        // PRESUMPTION: The first operand is at the top of the stack
+
+        // Evaluate the second operand and store the result in target_register
+        let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols);
+		index = new_index;
+		plp.code.push_str(&*code);
+
+		// Retreive the first operand from the stack and store it in temp_register
+		plp.pop(temp_register);
+
+        // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
+        let code = compile_arithmetic_operation(&operator_token, (temp_register, target_register), target_register);
+		plp.code.push_str(&*code);
+
+        // push the value to the stack, for the next operand
+        plp.push(target_register);
+    }
+
+    // Load the final result into target_register
+    plp.pop(target_register);
+
+    // TODO: determine real type instead of "Number"
+    return (plp.code, "Number".to_string(),index);
 }
 
 /// Evaluates either a literal, or a sequence of symbols (variables, accessors, method calls, etc)
