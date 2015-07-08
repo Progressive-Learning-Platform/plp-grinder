@@ -35,12 +35,11 @@ fn main()
     let mut symbols_table: SymbolTable = SymbolTable::new();
     let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
-    if tokens[0].value != "class"
+    let mut plp_string = String::new();
+    for static_method in class_structure.static_methods
     {
-        panic!("Unexpected token: {}: {}", tokens[0].value, tokens[0].name);
+        
     }
-
-    // let (last_index, asm_string) = compile_class(&tokens, 1);
 }
 
 fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
