@@ -10,7 +10,7 @@ public class BasicArithmatic
 	public static void main(String args)
 	{
 		int a = 4;
-		int b = 3;
+		int b = 2 + casualMethod();
 		int sum = a + b;
 		int product = a*b;
 		int difference = a -b;
