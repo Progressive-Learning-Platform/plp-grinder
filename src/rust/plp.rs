@@ -88,7 +88,7 @@ impl PLPWriter
 	pub fn mullo(&mut self, register_product: &str, register_multiplicand1: &str, register_multiplicand2: &str) -> String
 	{
 		let mut code = String::new();
-		code.push_str("subu ");
+		code.push_str("mullo ");
 		code.push_str(register_product);
 		code.push_str(", ");
 		code.push_str(register_multiplicand1);
