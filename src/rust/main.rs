@@ -392,9 +392,9 @@ fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols
 
 }
 
-fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize) -> (String, String, bool, SymbolClass<'a>)
+fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize) -> (String, String, bool, SymbolClass)
 {
-    let mut symbol_class: SymbolClass<'a>;
+    let mut symbol_class: SymbolClass;
     let mut is_static: bool = false;
     let mut index = start_index;
 

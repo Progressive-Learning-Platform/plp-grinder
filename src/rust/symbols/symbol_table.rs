@@ -33,14 +33,14 @@ impl ClassStructure
     }
 }
 
-pub struct SymbolTable<'a>
+pub struct SymbolTable
 {
-    pub children_scopes: Vec<Symbol<'a>>,
+    pub children_scopes: Vec<Symbol>,
 }
 
-impl<'a> SymbolTable<'a>
+impl<'a> SymbolTable
 {
-    pub fn new() -> SymbolTable<'a>
+    pub fn new() -> SymbolTable
     {
         SymbolTable
         {
@@ -49,12 +49,12 @@ impl<'a> SymbolTable<'a>
     }
 }
 
-impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
+impl StaticSymbolTable for SymbolTable
 {
     /// Return all symbols in this table with the specified name (in any namespace)
-    fn lookup_by_name(&self, name: &str) -> Vec<&Symbol<'a>>
+    fn lookup_by_name(&self, name: &str) -> Vec<&Symbol>
     {
-        let mut symbols: Vec<&Symbol<'a>> = Vec::new();
+        let mut symbols: Vec<&Symbol> = Vec::new();
         for symbol in self.children_scopes.iter()
         {
             if symbol.name == name
@@ -66,9 +66,9 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     }
 
     /// Return all symbols in this table with the specified namespace
-	fn lookup_by_namespace(&self, namespace: &str) -> Vec<&Symbol<'a>>
+	fn lookup_by_namespace(&self, namespace: &str) -> Vec<&Symbol>
     {
-        let mut symbols: Vec<&Symbol<'a>> = Vec::new();
+        let mut symbols: Vec<&Symbol> = Vec::new();
         for symbol in self.children_scopes.iter()
         {
             if symbol.namespace == namespace
@@ -81,7 +81,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
 
     /// Lookup a variable by its name and namespace. Duplicate symbols are not allowed, so the result will be unique
     /// @return the specified symbol or None if the specified symbol is not in this namespace
-	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol<'a>>
+	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol>
     {
         let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
@@ -121,7 +121,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     /// Lookup a function by its name and namespace. Functions with the same signature are not allowed, so the result will be unique
     /// If no result is found in the direct namespace, the parent namespaces will be searched
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol<'a>>
+	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol>
     {
         let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
@@ -162,7 +162,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     /// Duplicate classes in the same namespace are not allowed, so the result will be unique
     /// If no result is found in the direct namespace, the parent namespaces will be searched
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
-	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol<'a>)>
+	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol)>
     {
         let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
@@ -186,7 +186,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Structure(sub_type) => return Some((symbol).clone()),
+                                SymbolClass::Structure(ref sub_type) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -203,7 +203,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     /// Returns true if the symbol could be added; false otherwise
     /// Duplicate symbols are not allowed
     /// TODO: support overloaded methods
-	fn add(&mut self, class: SymbolClass<'a>, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
+	fn add(&mut self, class: SymbolClass, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
     {
         let mut static_label = namespace.replace(".", "_").clone();
         static_label.push_str("_static");
@@ -215,7 +215,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
         let mut location: SymbolLocation = match class
         {
             //TODO replace with storing logic
-            SymbolClass::Structure(sub_type) => SymbolLocation::Structured,
+            SymbolClass::Structure(ref sub_type) => SymbolLocation::Structured,
             SymbolClass::Variable(ref variable_type) => match in_method
                 {
                     true => match is_parameter

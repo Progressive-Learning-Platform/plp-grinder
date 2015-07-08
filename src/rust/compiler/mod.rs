@@ -81,7 +81,7 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
-            SymbolClass::Structure(subtype) => {
+            SymbolClass::Structure(ref subtype) => {
                     panic!("Expected Function found Structure");
                 }
         };
@@ -121,7 +121,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
-            SymbolClass::Structure(subtype) => {
+            SymbolClass::Structure(ref subtype) => {
                     panic!("Expected Function found Structure");
                 }
         };
@@ -385,7 +385,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
                 match symbol.location
                 {
-                    SymbolLocation::Register(name) => {
+                    SymbolLocation::Register(ref name) => {
                             plp.mov(target_register, name);
                         },
                     SymbolLocation::Memory(ref address) => {
@@ -524,13 +524,13 @@ pub fn compile_method_call( tokens: &Vec<Token>,
                 panic!("Expected Function found Variable");
             },
         SymbolClass::Function(ref return_type, ref argument_types, ref static_label, static_length) => return_type,
-        SymbolClass::Structure(subtype) => {
+        SymbolClass::Structure(ref subtype) => {
                 panic!("Expected Function found Structure");
             }
     };
     match method_symbol.location
     {
-        SymbolLocation::Register(name) => {
+        SymbolLocation::Register(ref name) => {
                 panic!("Found method at a Register instead of a constant Memory address");
             },
         SymbolLocation::Memory(ref address) => {
