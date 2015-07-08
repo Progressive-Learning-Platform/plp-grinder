@@ -1,7 +1,7 @@
 use std::vec::Vec;
 use tokens::*;
 use lexer::*;
-use symbol_table::*;
+use symbols::*;
 use support::*;
 use plp::PLPWriter;
 
@@ -321,7 +321,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     // TODO: if function is non-static, push $this to stack
     let return_type = match method_symbol.symbol_class
     {
-        SymbolClass::Variable(variable_type) => {
+        SymbolClass::Variable(ref variable_type) => {
                 panic!("Expected Function found Variable");
             },
         SymbolClass::Function(return_type, argument_types, static_label, static_length) => return_type,
