@@ -1,5 +1,5 @@
 extern crate regex;
-//extern crate getopts;
+extern crate getopts;
 
 mod matching;
 mod support;
@@ -10,7 +10,8 @@ mod symbols;
 mod plp;
 mod compiler;
 
-//use std::env;
+use std::env;
+use std::process;
 use std::vec::Vec;
 use tokens::*;
 use symbols::*;
@@ -26,50 +27,84 @@ fn main()
     let lex_output_file = "sampleData/output/stable/BasicArithmatic.java.lexed";
     let preprocessed_output_file = "sampleData/output/stable/BasicArithmatic.java.preprocessed";
 
-    //let was_compile_successful = execute_process(&["javac", source_file]);
-    let mut tokens: Vec<Token> = lex_file(source_file);
+    let args: Vec<String> = env::args().collect();
 
-    println!("\n\nFound Tokens:");
-    tokens.print_to(lex_output_file, true);
+    let mut opts = getopts::Options::new();
+    opts.optopt("s", "src", "Set input file name", "NAME");
 
-    remove_meta(&mut tokens);
-    println!("\n\nPerged Tokens:");
-    tokens.print_to(preprocessed_output_file, true);
-
-    let mut symbols_table: SymbolTable = SymbolTable::new();
-    let class_structure = parse_class(&tokens, 1, &mut symbols_table);
-
-    let main_symbol = symbols_table.lookup_by_name("main")[0];
-    let main_label = match main_symbol.location {
-            SymbolLocation::Memory(ref address) => address.label_name.clone(),
-            _ => { panic!("Main found was not a function!"); },
-        };
-
-    let mut plp_string = String::new();
-    plp_string.push_str(".org 0x10000000\n");
-    plp_string.push_str("li $sp, 0x10fffffc\n");
-    plp_string.push_str("call ");
-    plp_string.push_str(&*main_label);
-    plp_string.push_str("\nnop\nj end\nnop\n");
-    plp_string.push_str("call_buffer:\n\t.word 0\n");
-    plp_string.push_str("caller:\n\t.word 0\n");
-    plp_string.push_str("arg_stack:\n\t.word 0\n");
-    for static_method in class_structure.static_methods
+    let matches = match opts.parse(&args[1..])
     {
-        let range = (static_method.0, static_method.1);
-        let name = static_method.2;
-        let namespace = static_method.3;
-        let argument_types = static_method.4;
+        Ok(m) => m,
+        Err(f) => {
+                println!("{}", f);
+                process::exit(1);
+            }
+    };
 
-        let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
-
-        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-        let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
-        plp_string.push_str(&*code);
+    if matches.opt_present("s")
+    {
+        let brief = format!("Usage: grinder File [options]");
+        println!("{}", opts.usage(&brief));
+        match matches.opt_str("s")
+        {
+            Some(x) => println!("{}", x),
+            None => print!("\n"),
+        }
     }
-    plp_string.push_str("end:");
 
-    dump("output.asm", plp_string);
+    //TODO match options
+    if !matches.free.is_empty() {
+        println!("Free arguments: {:?}", matches.free);
+    }
+
+    let was_compile_successful = compile_oracle(&["javac", source_file]);
+
+    if was_compile_successful
+    {
+        let mut tokens: Vec<Token> = lex_file(source_file);
+
+        println!("\n\nFound Tokens:");
+        tokens.print_to(lex_output_file, true);
+
+        remove_meta(&mut tokens);
+        println!("\n\nPerged Tokens:");
+        tokens.print_to(preprocessed_output_file, true);
+
+        let mut symbols_table: SymbolTable = SymbolTable::new();
+        let class_structure = parse_class(&tokens, 1, &mut symbols_table);
+
+        let main_symbol = symbols_table.lookup_by_name("main")[0];
+        let main_label = match main_symbol.location {
+                SymbolLocation::Memory(ref address) => address.label_name.clone(),
+                _ => { panic!("Main found was not a function!"); },
+            };
+
+        let mut plp_string = String::new();
+        plp_string.push_str(".org 0x10000000\n");
+        plp_string.push_str("li $sp, 0x10fffffc\n");
+        plp_string.push_str("call ");
+        plp_string.push_str(&*main_label);
+        plp_string.push_str("\nnop\nj end\nnop\n");
+        plp_string.push_str("call_buffer:\n\t.word 0\n");
+        plp_string.push_str("caller:\n\t.word 0\n");
+        plp_string.push_str("arg_stack:\n\t.word 0\n");
+        for static_method in class_structure.static_methods
+        {
+            let range = (static_method.0, static_method.1);
+            let name = static_method.2;
+            let namespace = static_method.3;
+            let argument_types = static_method.4;
+
+            let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
+
+            let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+            let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
+            plp_string.push_str(&*code);
+        }
+        plp_string.push_str("end:");
+
+        dump("output.asm", plp_string);
+    }
 }
 
 fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
@@ -512,4 +547,23 @@ fn remove_meta(tokens: &mut Vec<Token>)
         // "index" refers to the index before any others were removed. Therefore, it must be offset by the number of removed tokens
         tokens.remove(index - count);
     }
+}
+
+pub fn compile_oracle(args: &[&str]) -> bool
+{
+    println!("<----------------- Oracle Compiler --------------------->");
+    let was_compile_successful = execute_process(args);
+
+    if was_compile_successful
+    {
+        println!("Compile Successful!");
+    }
+    else
+    {
+        println!("Unable to compile, because code is not valid java.");
+        println!("Please fix errors pointed out above.");
+
+    }
+    println!("\n");
+    was_compile_successful
 }

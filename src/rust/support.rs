@@ -1,3 +1,4 @@
+use std::process::Command;
 use std::vec::Vec;
 use tokens::*;
 
@@ -52,4 +53,28 @@ pub fn find_next(tokens: &Vec<Token>, start: usize, symbol: &str) -> Option<usiz
     }
 
     return None;
+}
+
+pub fn execute_process(args: &[&str]) -> bool
+{
+    let was_successful: bool;
+    let mut index = 0;
+    let mut output = Command::new(args[0])
+                        .arg(args[1])
+                        .output()
+                        .unwrap_or_else(|e| {panic!("Failed to execute process: {}", e) });
+
+    was_successful = output.status.success();
+
+    if was_successful
+    {
+        return true;
+    }
+    else
+    {
+        println!("{} stdout: {}", args[0], String::from_utf8_lossy(&output.stdout));
+        println!("{} stderr: {}", args[0], String::from_utf8_lossy(&output.stderr));
+    }
+    println!("\n");
+    false
 }
