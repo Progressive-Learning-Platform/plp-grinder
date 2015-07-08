@@ -37,6 +37,11 @@ fn main()
     let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
     let mut plp_string = String::new();
+    plp_string.push_str(".org 0x10000000\n");
+    plp_string.push_str("li $sp, 0x10fffffc\n");
+    plp_string.push_str("call_buffer:\n\t.word 0\n");
+    plp_string.push_str("caller:\n\t.word 0\n");
+    plp_string.push_str("arg_stack:\n\t.word 0\n");
     for static_method in class_structure.static_methods
     {
         let range = (static_method.0, static_method.1);
