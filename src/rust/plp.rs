@@ -107,7 +107,7 @@ impl PLPWriter
 		code.push_str(register_target);
 		code.push_str(", ");
 		code.push_str(&*offset.to_string());
-		code.push_str(" (");
+		code.push_str("(");
 		code.push_str(register_address);
 		code.push_str(")\n");
 
@@ -122,7 +122,7 @@ impl PLPWriter
 		code.push_str(register_target);
 		code.push_str(", ");
 		code.push_str(&*offset.to_string());
-		code.push_str(" (");
+		code.push_str("(");
 		code.push_str(register_address);
 		code.push_str(")\n");
 
@@ -232,6 +232,17 @@ impl PLPWriter
 		code.push_str(label);
 		code.push_str("\n");
 		code.push_str("nop\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn space(&mut self, amount: u16) -> String
+	{
+		let mut code = String::new();
+		code.push_str(".space ");
+		code.push_str(&*amount.to_string());
+		code.push_str("\n");
 
 		self.code.push_str(&*code);
 		return code;
