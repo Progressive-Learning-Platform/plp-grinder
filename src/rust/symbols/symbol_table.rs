@@ -84,13 +84,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace
 	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect("_");
 
             if namespaces.is_empty()
             {
