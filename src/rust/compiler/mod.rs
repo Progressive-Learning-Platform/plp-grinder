@@ -80,13 +80,13 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
             SymbolClass::Variable(ref variable_type) => {
                     panic!("Expected Function found Variable");
                 },
-            SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
             SymbolClass::Structure(subtype) => {
                     panic!("Expected Function found Structure");
                 }
         };
     // *Push static memory
-    plp.li(registers.0, label_name);
+    plp.li(registers.0, &*label_name.clone());
     for var_index in 0..var_count
     {
         let offset = 4 * var_index;
@@ -120,7 +120,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
             SymbolClass::Variable(ref variable_type) => {
                     panic!("Expected Function found Variable");
                 },
-            SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
             SymbolClass::Structure(subtype) => {
                     panic!("Expected Function found Structure");
                 }
@@ -137,7 +137,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
     plp.sw(registers.1, 0, registers.0);
 
     // *Restore static memory
-    plp.li(registers.0, label_name);
+    plp.li(registers.0, &*label_name.clone());
     for var_index in (0..var_count).rev()
     {
         let offset = 4 * var_index;
@@ -523,7 +523,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         SymbolClass::Variable(ref variable_type) => {
                 panic!("Expected Function found Variable");
             },
-        SymbolClass::Function(return_type, argument_types, static_label, static_length) => return_type,
+        SymbolClass::Function(ref return_type, ref argument_types, ref static_label, static_length) => return_type,
         SymbolClass::Structure(subtype) => {
                 panic!("Expected Function found Structure");
             }

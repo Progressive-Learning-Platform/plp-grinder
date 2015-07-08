@@ -145,7 +145,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Function(return_type, arguments, static_label, static_length) => return Some((symbol).clone()),
+                                SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -229,7 +229,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
                             false => SymbolLocation::InstancedMemory(local_variable_count * 4),
                         },
                 },
-            SymbolClass::Function(return_type, arguments, static_label, static_length) => SymbolLocation::Memory(MemoryAddress {label_name: method_namespace, offset: 0}),
+            SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) => SymbolLocation::Memory(MemoryAddress {label_name: method_namespace, offset: 0}),
         };
 
         let mut symbol: Symbol =  Symbol
