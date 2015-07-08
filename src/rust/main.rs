@@ -360,7 +360,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
     }
 
-    //Add Parameters
+    //Add body variables
     for index in 0..static_variables.len()
     {
         let ref variable_name = static_variables[index].0;
@@ -372,14 +372,19 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
         symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), variable_name.clone(), true, true, false, 0, variable_offset, 0);
     }
 
-    println!("---parse_method: static: {}/{}/{}", is_method_static, method_return_type, method_name);
-    for(index, token) in tokens[(ending_parenthesis + 2)..].iter().enumerate()
+    let mut parameter_arguments: Vec<String> = Vec::new();
+    let mut static_namespace = method_namespace.clone();
+    static_namespace.push_str("_static");
+    println!("Static method namespace: {}", static_namespace);
+
+    for index in 0..parameters.len()
     {
-        if index + start_index >= end_index
-        {
-            break;
-        }
+        let string: String = parameters[index].1.clone();
+        parameter_arguments.push(string);
     }
+
+    //Add function symbol
+    symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments, static_namespace.clone(), static_variables.len()), method_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
 }
 
 fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
