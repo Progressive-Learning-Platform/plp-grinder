@@ -15,6 +15,7 @@ use symbols::*;
 use symbols::symbol_table::*;
 use lexer::*;
 use support::*;
+use files::dump;
 use compiler::*;
 
 fn main()
@@ -41,9 +42,16 @@ fn main()
         let range = (static_method.0, static_method.1);
         let name = static_method.2;
         let namespace = static_method.3;
+        let argument_types = static_method.4;
 
+        let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
 
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
+        plp_string.push_str(&*code);
     }
+
+    dump("output.asm", plp_string);
 }
 
 fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
