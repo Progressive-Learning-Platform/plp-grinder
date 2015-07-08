@@ -242,7 +242,6 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
         };
 
         self.children_scopes.push(symbol);
-        println!("Pushed symbol");
         return true;
     }
 }

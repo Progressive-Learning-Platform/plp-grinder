@@ -12,7 +12,7 @@ public class BasicArithmatic
 		return a + b;
 	}
 
-	public static void main(String[] args)
+	public static void main(String args)
 	{
 		int a = 4;
 		int b = 3;

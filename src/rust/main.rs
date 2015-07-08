@@ -243,7 +243,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 SymbolLocation::Memory(ref memory_address) => memory_address.label_name.clone(),
                 _ => String::new(),
             };
-        println!("SYMBOL: {}/{}/{}", symbol.name, label_name_string, offset);
+        println!("SYMBOL: {}/{}/{}", symbol.name, symbol.namespace, offset);
     }
     println!("\n");
     class_structure
@@ -252,8 +252,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
 fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
 {
     //TODO parse if/else, while, for
+    //TODO add bool for if expression
     let mut method_namespace = current_namespace.replace(".", "_").clone();
-    let mut parameter_names: Vec<(String, String)> = Vec::new();
+    let mut parameters: Vec<(String, String)> = Vec::new();
+    let mut static_variables: Vec<(String, String, bool, SymbolClass)> = Vec::new();
     let mut current_static_method_variables = 0;
     let mut method_name = String::new();
     let mut method_return_type = String::new();
@@ -304,7 +306,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
             let parameter_name = tokens[index].value.clone();
 
-            parameter_names.push((parameter_name.clone(), tokens[index].value.clone()));
+            parameters.push((parameter_name.clone(), tokens[index].value.clone()));
             current_static_method_variables += 1;
             index += 1;
         }
@@ -324,19 +326,51 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
     }
 
     //Add Parameters
-    for index in 0..parameter_names.len()
+    for index in 0..parameters.len()
     {
-        let ref parameter_name = parameter_names[index].0;
-        let ref return_type = parameter_names[index].1;
+        let ref parameter_name = parameters[index].0;
+        let ref return_type = parameters[index].1;
 
         //TODO Equation for parameter offset
-        let parameter_offset = (parameter_names.len() * 4 - (index * 4)) as u16;
+        let parameter_offset = (parameters.len() * 4 - (index * 4)) as u16;
         symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), parameter_name.clone(), false, true, true, 0, 0, parameter_offset);
 
     }
 
+    //pass ) and {
+    index += 2;
+
     //Parse body
-    
+    while index < ending_brace
+    {
+        if tokens[index].name == "type"
+        {
+            let semicolon = find_next(tokens, index, ";").unwrap();
+            let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, semicolon);
+
+            static_variables.push((name.clone(), variable_type.clone(), is_static, symbol_class));
+
+            current_static_method_variables += 1;
+            index = semicolon + 1;
+        }
+        else
+        {
+            index += 1;
+        }
+
+    }
+
+    //Add Parameters
+    for index in 0..static_variables.len()
+    {
+        let ref variable_name = static_variables[index].0;
+        let ref return_type = static_variables[index].1;
+        let ref is_variable_static = static_variables[index].2;
+
+        //TODO Equation for parameter offset
+        let variable_offset = (index * 4) as u16;
+        symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), variable_name.clone(), true, true, false, 0, variable_offset, 0);
+    }
 
     println!("---parse_method: static: {}/{}/{}", is_method_static, method_return_type, method_name);
     for(index, token) in tokens[(ending_parenthesis + 2)..].iter().enumerate()
@@ -346,6 +380,11 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
             break;
         }
     }
+}
+
+fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
+{
+
 }
 
 fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize) -> (String, String, bool, SymbolClass<'a>)
@@ -367,7 +406,7 @@ fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize)
     index += 1;
     let mut name = tokens[index].value.clone();
 
-    symbol_class = SymbolClass::Variable(name.clone());
+    symbol_class = SymbolClass::Variable(variable_type.clone());
 
     (name.clone(), variable_type.clone(), is_static, symbol_class)
 }
