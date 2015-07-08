@@ -7,11 +7,6 @@ public class BasicArithmatic
 		return 1;
 	}
 
-	public static int sum(int a, int b)
-	{
-		return a + b;
-	}
-
 	public static void main(String args)
 	{
 		int a = 4;
