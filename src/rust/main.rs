@@ -55,6 +55,7 @@ fn main()
         let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
         plp_string.push_str(&*code);
     }
+    plp_string.push_str("end:");
 
     dump("output.asm", plp_string);
 }
