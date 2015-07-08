@@ -2,7 +2,8 @@ use symbols::*;
 use support::*;
 
 //TODO change String to Symbol
-pub struct MemberBlock (pub usize, pub usize, pub String);
+///start, end, name, namespace
+pub struct MemberBlock (pub usize, pub usize, pub String, pub String);
 
 pub struct ClassStructure
 {
@@ -123,6 +124,7 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
 	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol>
     {
+        //TODO use argument_types
         let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
         let mut current_namespace;

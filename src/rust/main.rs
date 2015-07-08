@@ -75,10 +75,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
                 let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, high);
-                symbols_table.add(symbol_class, current_namespace.clone(), name, is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+                symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
-                class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 2].value.clone()));
+                class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone()));
 
                 min_value =  low;
                 min_value -= index;
@@ -92,10 +92,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
                 let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, high);
-                symbols_table.add(symbol_class, current_namespace.clone(), name, is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+                symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
-                class_structure.static_variables.push(MemberBlock (low, high, tokens[index + 3].value.clone()));
+                class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone()));
 
                 min_value =  low;
                 min_value -= index;
@@ -109,7 +109,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                     println!("------Incoming Static Class Decl!");
                     let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                     min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
-                    class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone()));
+
+                    //let temp_symbol = *symbols_table.lookup_variable(&*current_namespace, &*name);
+                    class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone(), current_namespace.clone()));
                     min_value -= index + 1;
                 }
                 else
@@ -124,9 +126,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
+                let (method_name, argument_types) = parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
 
-                class_structure.static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone()));
+                class_structure.static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone()));
                 min_value -=  index + 1;
             }
             else
@@ -147,7 +149,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let index_after_brace = index + skip_amount + 1;
                 current_namespace = tokens[index + 1].value.clone();
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
-                class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone()));
+                class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone()));
                 //TODO parse_class(tokens, index, symbols_table);
                 min_value = 0;
             }
@@ -168,9 +170,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
+                let (method_name, argument_types) = parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
 
-                class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, tokens[index + 1].value.clone()));
+                class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone()));
                 min_value -= index + 1;
                 //check for control
             }
@@ -181,10 +183,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 min_value =  find_next(tokens, index, ";").unwrap() + 1;
 
                 let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, min_value);
-                symbols_table.add(symbol_class, current_namespace.clone(), name, is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+                symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_local_class_variables += 1;
 
-                class_structure.non_static_variables.push(MemberBlock (index, min_value, tokens[index + 1].value.clone()));
+                class_structure.non_static_variables.push(MemberBlock (index, min_value, name.clone(), current_namespace.clone()));
                 min_value -= index + 1;
             }
         }
@@ -249,7 +251,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
     class_structure
 }
 
-fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
+fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String) -> (String, Vec<String>)
 {
     //TODO parse if/else, while, for
     //TODO add bool for if expression
@@ -287,8 +289,6 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
     let ending_parenthesis = identify_body_bounds(tokens, step, ("(", ")")).unwrap();
     let ending_brace = identify_body_bounds(tokens, ending_parenthesis + 2, ("{", "}")).unwrap();
-    method_namespace.push_str("_");
-    method_namespace.push_str(&*method_name.clone());
     let mut skip_amount = 0;
 
     let mut index = step;
@@ -360,6 +360,8 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
     }
 
+    method_namespace.push_str("_");
+    method_namespace.push_str(&*method_name.clone());
     //Add body variables
     for index in 0..static_variables.len()
     {
@@ -384,7 +386,8 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
     }
 
     //Add function symbol
-    symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments, static_namespace.clone(), static_variables.len()), method_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
+    symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments.clone(), static_namespace.clone(), static_variables.len()), current_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
+    (method_name, parameter_arguments)
 }
 
 fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
