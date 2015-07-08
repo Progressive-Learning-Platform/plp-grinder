@@ -10,7 +10,7 @@ pub fn get_token_types<'a>() -> Vec<(&'a str, &'a str)>
     // TODO: Read types from rules file
     let mut token_types: Vec<(&str, &str)> = Vec::new();
 
-    token_types.push(("comment.line",       	r"//[^\n|$]*"));
+    token_types.push(("comment.line",       	r"//[^\n]*"));
     token_types.push(("comment.block",      	r"/\*([^\*]|(\*[^/]))*\*/"));
     token_types.push(("control",            	r"\.|\(|\)|\{|}|\[|]|;|,"));
     token_types.push(("literal.int",        	r"(0(x|b|o|d))?[:digit:]+"));
