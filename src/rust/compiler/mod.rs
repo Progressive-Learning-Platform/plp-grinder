@@ -408,6 +408,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 // compile the method and append it directly to the compiled plp code
                 let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
+                plp.mov(target_register, "$v0");
                 index = new_index;
                 valid_address = false;
 
@@ -531,6 +532,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     while index < end_index
     {
         let token = &tokens[index];
+        println!("\t\tcompile_method_call: processing token at {} | {}: {}", index, token.value, token.name);
         if token.value == ","
         {
             // Skip commas, arguments are separated by the stack divisors
@@ -540,6 +542,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         else
         {
             // Load argument into arg_register
+            println!("\t\tcompile_method_call: outsourcing to compile_arithmetic_statement");
             let (code, argument_type, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols);
             plp.code.push_str(&*code);
             index = new_index;
@@ -556,11 +559,12 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     // Handle each argument one at a time, and push each to the stack
 
     // TODO: determine namespace from caller and current_namespace
-    let namespace = "";
+    let namespace = current_namespace;
 
     let id_token = &tokens[start];
     let method_name = &*id_token.value;
 
+    println!("\t\tcompile_method_call: lookup method symbol {} | {} | {}", namespace, method_name, argument_types.len());
     let method_symbol = symbols.lookup_function(namespace, method_name, &argument_types).unwrap();
     // TODO: determine if method is static
     // TODO: if function is non-static, push $this to stack
