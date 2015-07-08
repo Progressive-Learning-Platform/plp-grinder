@@ -38,6 +38,10 @@ fn main()
     let mut plp_string = String::new();
     for static_method in class_structure.static_methods
     {
+        let range = (static_method.0, static_method.1);
+        let name = static_method.2;
+        let namespace = static_method.3;
+
 
     }
 }
