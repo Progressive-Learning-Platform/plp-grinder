@@ -166,7 +166,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 current_namespace = tokens[index + 1].value.clone();
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
 
-                //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+                symbols_table.add(SymbolClass::Structure("class".to_string()), current_namespace.clone(), tokens[index + 1].value.clone(), false, false, false, 0, 0, 0);
 
                 class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone(), None));
                 //TODO parse_class(tokens, index, symbols_table);
@@ -259,7 +259,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             {
                 SymbolLocation::Memory(ref memory_address) => memory_address.offset,
                 SymbolLocation::MethodArgument(offset) => offset,
-                _ => -1,
+                _ => 0,
             };
         let mut label_name_string = match symbol.location
             {
