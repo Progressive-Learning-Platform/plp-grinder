@@ -38,7 +38,7 @@ fn main()
     let mut plp_string = String::new();
     for static_method in class_structure.static_methods
     {
-        
+
     }
 }
 
@@ -244,7 +244,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 SymbolLocation::Memory(ref memory_address) => memory_address.label_name.clone(),
                 _ => String::new(),
             };
-        println!("SYMBOL: {}/{}/{}", symbol.name, symbol.namespace, offset);
+        println!("SYMBOL: {}/{}/{}/{}", symbol.name, label_name_string, symbol.namespace, offset);
     }
     println!("\n");
     class_structure
