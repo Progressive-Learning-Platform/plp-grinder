@@ -75,17 +75,8 @@ identifier	a
 operator.binary	-
 literal.int	2
 control	;
-type	int
-identifier	addConstant
-operator.binary	=
-identifier	b
-operator.binary	*
-identifier	constant
-control	;
-identifier	addConstant
-operator.binary	+=
-literal.int	2
-control	;
+comment.line	//int addConstant = b * constant;
+comment.line	//addConstant += 2;
 type	int
 identifier	multiplyImmediate
 operator.binary	=
@@ -149,20 +140,9 @@ control	)
 operator.binary	*
 literal.int	7
 control	;
-identifier	multiplyImmediate
-operator.binary	=
-identifier	multiplyImmediate
-operator.binary	<<
-literal.int	1
-control	;
+comment.line	//multiplyImmediate = multiplyImmediate << 1;
 comment.line	//multiplyImmediate++;
-type	boolean
-identifier	test
-operator.binary	=
-literal.boolean	true
-operator.binary	|
-literal.boolean	false
-control	;
+comment.line	//boolean test = true | false;
 comment.line	//CasualMethod();
 comment.line	//Sum(a, b);
 comment.line	// DO NOT LEX

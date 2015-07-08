@@ -16,16 +16,16 @@ public class BasicArithmatic
 		int difference = a -b;
 		int addImmediate = a + 2;
 		int subImmediate = a - 2;
-		int addConstant = b * constant;
-		addConstant += 2;
+		//int addConstant = b * constant;
+		//addConstant += 2;
 		int multiplyImmediate = b * 0x05;
 		int parenthesis = a + ( a + b );
 		int pemdasFull = (a + b) * 3 - 10;
 		int pemdasFullAlternate = a + b * (3 - 10);
 		int multipleParenthis = 1 + (a + (b - 5) * 2) * 7;
-		multiplyImmediate = multiplyImmediate << 1;
+		//multiplyImmediate = multiplyImmediate << 1;
 		//multiplyImmediate++;
-		boolean test = true | false;
+		//boolean test = true | false;
 
 
 		//CasualMethod();
