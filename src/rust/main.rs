@@ -160,6 +160,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let index_after_brace = index + skip_amount + 1;
                 current_namespace = tokens[index + 1].value.clone();
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
+
+                //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+
                 class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone(), None));
                 //TODO parse_class(tokens, index, symbols_table);
                 min_value = 0;
@@ -242,6 +245,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
     }
     println!("\n");
 
+    let mut symbols_table_dump: String = String::new();
+
     println!("\n<                    Overview                     >");
     for symbol in symbols_table.children_scopes.iter()
     {
@@ -257,7 +262,17 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 _ => String::new(),
             };
         println!("SYMBOL: {}/{}/{}/{}", symbol.name, label_name_string, symbol.namespace, offset);
+        let string: String = symbol.name.clone();
+        symbols_table_dump.push_str(&*string);
+        symbols_table_dump.push_str("/");
+        symbols_table_dump.push_str(&*label_name_string);
+        symbols_table_dump.push_str("/");
+        symbols_table_dump.push_str(&*symbol.namespace);
+        symbols_table_dump.push_str("/");
+        symbols_table_dump.push_str(&*offset.to_string());
+        symbols_table_dump.push_str("\n");
     }
+    dump("symbol_table.txt", symbols_table_dump);
     println!("\n");
     class_structure
 }
@@ -381,7 +396,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
         let ref is_variable_static = static_variables[index].2;
 
         //TODO Equation for parameter offset
-        let variable_offset = (index * 4) as u16;
+        let variable_offset = (index) as u16;
         symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), variable_name.clone(), true, true, false, 0, variable_offset, 0);
     }
 
