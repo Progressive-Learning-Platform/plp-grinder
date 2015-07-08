@@ -39,9 +39,18 @@ fn main()
     let mut symbols_table: SymbolTable = SymbolTable::new();
     let class_structure = parse_class(&tokens, 1, &mut symbols_table);
 
+    let main_symbol = symbols_table.lookup_by_name("main")[0];
+    let main_label = match main_symbol.location {
+            SymbolLocation::Memory(ref address) => address.label_name.clone(),
+            _ => { panic!("Main found was not a function!"); },
+        };
+
     let mut plp_string = String::new();
     plp_string.push_str(".org 0x10000000\n");
     plp_string.push_str("li $sp, 0x10fffffc\n");
+    plp_string.push_str("call ");
+    plp_string.push_str(&*main_label);
+    plp_string.push_str("\nnop\nj end\nnop\n");
     plp_string.push_str("call_buffer:\n\t.word 0\n");
     plp_string.push_str("caller:\n\t.word 0\n");
     plp_string.push_str("arg_stack:\n\t.word 0\n");
@@ -170,7 +179,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 current_namespace = tokens[index + 1].value.clone();
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
 
-                symbols_table.add(SymbolClass::Structure("class".to_string()), current_namespace.clone(), tokens[index + 1].value.clone(), false, false, false, 0, 0, 0);
+                //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
 
                 class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone(), None));
                 //TODO parse_class(tokens, index, symbols_table);
@@ -263,7 +272,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
             {
                 SymbolLocation::Memory(ref memory_address) => memory_address.offset,
                 SymbolLocation::MethodArgument(offset) => offset,
-                _ => 0,
+                _ => -1,
             };
         let mut label_name_string = match symbol.location
             {

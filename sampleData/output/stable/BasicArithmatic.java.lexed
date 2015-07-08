@@ -38,7 +38,11 @@ control	;
 type	int
 identifier	b
 operator.binary	=
-literal.int	3
+literal.int	2
+operator.binary	+
+identifier	casualMethod
+control	(
+control	)
 control	;
 type	int
 identifier	sum
