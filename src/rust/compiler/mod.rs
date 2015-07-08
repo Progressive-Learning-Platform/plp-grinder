@@ -77,7 +77,7 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
     // Save current method state to the stack
     // *Determine size and location of static memory
     let (var_count, label_name) = match method_symbol.symbol_class {
-            SymbolClass::Variable(variable_type) => {
+            SymbolClass::Variable(ref variable_type) => {
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
@@ -117,7 +117,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
     // Save current method state to the stack
     // *Determine size and location of static memory
     let (var_count, label_name) = match method_symbol.symbol_class {
-            SymbolClass::Variable(variable_type) => {
+            SymbolClass::Variable(ref variable_type) => {
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
