@@ -12,7 +12,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
                             method_symbol: &Symbol,
                             current_namespace: &str,
                             registers: (&str, &str, &str, &str, &str),
-                            symbol_table: &StaticSymbolTable)
+                            symbol_table: &StaticSymbolTable) -> String
 {
     let (start_index, end_index) = range;
 
@@ -68,6 +68,8 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     plp.label(&*return_label);
     compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
     plp.ret();
+
+    plp.code
 }
 
 pub fn compile_save_method_state(   method_symbol: &Symbol,
