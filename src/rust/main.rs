@@ -1,4 +1,5 @@
 extern crate regex;
+//extern crate getopts;
 
 mod matching;
 mod support;
@@ -9,6 +10,7 @@ mod symbols;
 mod plp;
 mod compiler;
 
+//use std::env;
 use std::vec::Vec;
 use tokens::*;
 use symbols::*;
@@ -24,6 +26,7 @@ fn main()
     let lex_output_file = "sampleData/output/stable/BasicArithmatic.java.lexed";
     let preprocessed_output_file = "sampleData/output/stable/BasicArithmatic.java.preprocessed";
 
+    //let was_compile_successful = execute_process(&["javac", source_file]);
     let mut tokens: Vec<Token> = lex_file(source_file);
 
     println!("\n\nFound Tokens:");
@@ -91,7 +94,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let low = index + 1;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, high);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
@@ -108,7 +111,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 let low = index + 2;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, high);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
@@ -202,7 +205,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 println!("------Incoming Non-Static Variable Decl!");
                 min_value =  find_next(tokens, index, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, min_value);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_local_class_variables += 1;
 
@@ -378,7 +381,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
         if tokens[index].name == "type"
         {
             let semicolon = find_next(tokens, index, ";").unwrap();
-            let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index, semicolon);
+            let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
 
             static_variables.push((name.clone(), variable_type.clone(), is_static, symbol_class));
 
@@ -427,7 +430,7 @@ fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols
 
 }
 
-fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize) -> (String, String, bool, SymbolClass)
+fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize) -> (String, String, bool, SymbolClass)
 {
     let mut symbol_class: SymbolClass;
     let mut is_static: bool = false;
@@ -442,9 +445,9 @@ fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize, end_index: usize)
     {
         index += 1;
     }
-    let mut variable_type = tokens[index].value.clone();
+    let variable_type = tokens[index].value.clone();
     index += 1;
-    let mut name = tokens[index].value.clone();
+    let name = tokens[index].value.clone();
 
     symbol_class = SymbolClass::Variable(variable_type.clone());
 
