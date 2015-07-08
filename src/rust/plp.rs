@@ -174,4 +174,66 @@ impl PLPWriter
 		self.code.push_str(&*code);
 		return code;
 	}
+
+	pub fn label(&mut self, label: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str(label);
+		code.push_str(":");
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn beq(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("beq ");
+		code.push_str(register_comparator1);
+		code.push_str(", ");
+		code.push_str(register_comparator2);
+		code.push_str(", ");
+		code.push_str(target_label);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn bne(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("bne ");
+		code.push_str(register_comparator1);
+		code.push_str(", ");
+		code.push_str(register_comparator2);
+		code.push_str(", ");
+		code.push_str(target_label);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn ret(&mut self) -> String
+	{
+		let mut code = String::new();
+		code.push_str("return\nnop\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
+
+	pub fn j(&mut self, label: &str) -> String
+	{
+		let mut code = String::new();
+		code.push_str("j ");
+		code.push_str(label);
+		code.push_str("\n");
+		code.push_str("nop\n");
+
+		self.code.push_str(&*code);
+		return code;
+	}
 }
