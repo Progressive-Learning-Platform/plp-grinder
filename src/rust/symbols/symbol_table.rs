@@ -125,13 +125,13 @@ impl StaticSymbolTable for SymbolTable
 	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol>
     {
         //TODO use argument_types
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect("_");
 
             if namespaces.is_empty()
             {
@@ -166,13 +166,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
 	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol)>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect("_");
 
             if namespaces.is_empty()
             {
