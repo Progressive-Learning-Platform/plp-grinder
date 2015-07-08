@@ -1,4 +1,4 @@
-use symbol_table::*;
+use symbols::*;
 use support::*;
 
 //TODO change String to Symbol
@@ -35,7 +35,7 @@ impl ClassStructure
 
 pub struct SymbolTable<'a>
 {
-    children_scopes: Vec<Symbol<'a>>,
+    pub children_scopes: Vec<Symbol<'a>>,
 }
 
 impl<'a> SymbolTable<'a>
@@ -105,7 +105,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Variable(variable_type) => return Some((symbol).clone()),
+                                SymbolClass::Variable(ref variable_type) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -203,20 +203,20 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
     /// Returns true if the symbol could be added; false otherwise
     /// Duplicate symbols are not allowed
     /// TODO: support overloaded methods
-	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
+	fn add(&mut self, class: SymbolClass<'a>, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
     {
         let mut static_label = namespace.replace(".", "_").clone();
         static_label.push_str("_static");
         let mut method_namespace = namespace.replace(".", "_").clone();
         method_namespace.push_str("_");
-        method_namespace.push_str(name);
+        method_namespace.push_str(&*name);
 
         //TODO add return false
         let mut location: SymbolLocation = match class
         {
             //TODO replace with storing logic
             SymbolClass::Structure(sub_type) => SymbolLocation::Structured,
-            SymbolClass::Variable(variable_type) => match in_method
+            SymbolClass::Variable(ref variable_type) => match in_method
                 {
                     true => match is_parameter
                         {
@@ -242,6 +242,7 @@ impl<'a> StaticSymbolTable<'a> for SymbolTable<'a>
         };
 
         self.children_scopes.push(symbol);
+        println!("Pushed symbol");
         return true;
     }
 }

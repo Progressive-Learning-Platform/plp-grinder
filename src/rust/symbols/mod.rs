@@ -28,7 +28,7 @@ pub trait StaticSymbolTable<'a>
 	/// Returns true if the symbol could be added; false otherwise
 	/// Duplicate symbols are not allowed
 	/// TODO: support overloaded methods
-	fn add(&mut self, class: SymbolClass<'a>, namespace: &'a str, name: &'a str, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool;
+	fn add(&mut self, class: SymbolClass<'a>, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool;
 }
 
 pub enum SymbolLocation<'a>
@@ -54,7 +54,7 @@ pub enum SymbolLocation<'a>
 pub enum SymbolClass<'a>
 {
 	/// (variable_type)
-	Variable(&'a str),
+	Variable(String),
 
 	/// Function signature (return_type, argument_types, static_memory_label, static_memory_size (in words)) //TODO: support exceptions
 	Function(&'a str, &'a Vec<&'a str>, &'a str, usize),
@@ -67,12 +67,12 @@ pub enum SymbolClass<'a>
 pub struct Symbol<'a>
 {
 	/// Namespace of this symbol, without the final "." or the name of this symbol
-	pub namespace: &'a str,
+	pub namespace: String,
 
 	pub is_static: bool,
 
 	/// Identifier for the symbol (e.g. name of variable, function, class, etc. without it's namespace)
-	pub name: &'a str,
+	pub name: String,
 
 	/// What this symbol represents (class, enum, variable, function, etc)
 	pub symbol_class: SymbolClass<'a>,
