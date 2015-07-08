@@ -39,15 +39,24 @@ pub fn compile_method_body( tokens: &Vec<Token>,
 
     // ASSUMPTION: Methods will store their argument pointer in static memory directly above the method body
 
-    while index < end_index
+    let mut realz_namespace = String::new();
+    realz_namespace.push_str(current_namespace);
+    realz_namespace.push_str("_");
+    realz_namespace.push_str(&*method_symbol.name);
+
+    println!("End found: {}", end_index);
+    while index < end_index - 1
     {
         let token = &tokens[index];
 
+        println!("compile {}", index);
         if token.value == "return"
         {
+            println!("return {}", index);
+
             let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
-                                                                                start_index,
-                                                                                current_namespace,
+                                                                                index + 1,
+                                                                                &*realz_namespace,
                                                                                 registers.0,
                                                                                 (registers.1, registers.2),
                                                                                 "v0",
@@ -59,7 +68,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
         }
         else
         {
-            let (code, end_index) = compile_statement(tokens, start_index, method_symbol, current_namespace, registers, symbol_table);
+            let (code, end_index) = compile_statement(tokens, index, method_symbol, &*realz_namespace, registers, symbol_table);
             plp.code.push_str(&*code);
             index = end_index;
         }
@@ -223,7 +232,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
     while index < tokens.len()
     {
         let token = &tokens[index];
-
+        println!("Parsing {}: {} {}", index, token.value, token.name);
         if token.value == "{"
         {
             panic!("compile_statement: Nested scopes currently unsupported");
@@ -237,6 +246,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         else if token.name == "type" // || token.name == "identifier"
         {
             // IGNORE
+            println!("Ignoring {}", index);
             index += 1;
         }
         else if token.name.starts_with("literal") // || token.name == "identifier"
@@ -266,6 +276,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         }
         else if token.name == "identifier"
         {
+            println!("Ident {} {}", index, token.value);
             // TODO: determine memory location of nested access
             let (code, new_index) = compile_symbol_sequence(tokens,
                                                             index,
@@ -276,6 +287,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
                                                             Some(address_register),
                                                             symbol_table);
             plp.code.push_str(&*code);
+            println!("Sequence ended at {}", new_index);
             index = new_index;
         }
         else if token.value == "="
@@ -360,8 +372,6 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 
     while index < (tokens.len() - 1)
     {
-        // The only way to be valid is to load a variable read with a memory address
-        valid_address = false;
         let token = &tokens[index];
 
         // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
@@ -376,6 +386,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
                 plp.code.push_str(&*method_code);
                 index = new_index;
+                valid_address = false;
 
                 // TODO: panic if a method call is the last symbol, and address_register is Some(_)
                 // TODO: pop previous reference from stack
@@ -384,15 +395,19 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             // Variable read
             else
             {
+                println!("1 {} {}", current_namespace, &*token.value);
                 let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
+                valid_address = false;
                 match symbol.location
                 {
                     SymbolLocation::Register(ref name) => {
                             plp.mov(target_register, name);
+                            println!("{}: Register", &*token.value);
                         },
                     SymbolLocation::Memory(ref address) => {
                             plp.li(load_registers.0, &*address.label_name);
                             plp.lw(target_register, address.offset, load_registers.0);
+                            println!("{}: Memory Address", &*token.value);
 
                             match address_register
                             {
@@ -415,13 +430,16 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             plp.lw(load_registers.0, offset, load_registers.0);
 
                             plp.lw(target_register, offset, load_registers.0);
+                            println!("{}: InstancedMemory", &*token.value);
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             //TODO: account for method argument
                             panic!("compile_symbol_sequence: method arguments currently unsupported!");
+                            println!("{}: MethodArgument", &*token.value);
                         },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
+                            println!("{}: Strcutured", &*token.value);
                         },
                 };
 
@@ -658,7 +676,7 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
     }
     else
     {
-        panic!("Unexpected token: {}\t{}", token.name, token.value);
+        panic!("Unexpected token at {}: {}\t{}", end_index, token.value, token.name);
     }
 
     end_index
