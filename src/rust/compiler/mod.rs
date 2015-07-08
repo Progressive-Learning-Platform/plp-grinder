@@ -11,160 +11,319 @@ pub fn compile_method_body( tokens: &Vec<Token>,
                             range: (usize, usize),
                             method_symbol: &Symbol,
                             current_namespace: &str,
-                            registers: (&str, &str, &str, &str),
+                            registers: (&str, &str, &str, &str, &str),
                             symbol_table: &StaticSymbolTable)
 {
     let (start_index, end_index) = range;
 
-    let mut plp_string: String = String::new();
+    let mut plp = PLPWriter::new();
     let mut index: usize = start_index;
 
     if tokens[start_index].value != "{" { panic!("Expected '{{' received: {}", tokens[start_index].value); }
     else { index += 1; }
 
+    let method_name = match method_symbol.location {
+        SymbolLocation::Memory(ref address) => address.label_name.clone(),
+        _ => { panic!("compile_method_body: Expected Memory address for method"); },
+    };
+    let mut return_label = method_name.clone();
+    return_label.push_str("_return");
+
+    plp.label(&*method_name);
+    compile_save_method_state(method_symbol, (registers.0, registers.1), &mut plp);
+
     // ASSUMPTION: before calling a method:
-    // * a reference of the caller or $0 (if the method is called statically) will be pushed to the stack
+    // * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
     // * all arguments for the method will be pushed to the stack
     // * the stack pointer $sp at the top of the argument stack will be passed to $a0
 
-    // Methods will store their argument pointer in static memory directly above the method body
+    // ASSUMPTION: Methods will store their argument pointer in static memory directly above the method body
 
     while index < end_index
     {
         let token = &tokens[index];
 
-        if token.value == "class"
+        if token.value == "return"
         {
-            panic!("Unexpected token: {}\t{}", token.name, token.value);
+            let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+                                                                                start_index,
+                                                                                current_namespace,
+                                                                                registers.0,
+                                                                                (registers.1, registers.2),
+                                                                                "v0",
+                                                                                symbol_table);
+            plp.code.push_str(&*code);
+            // TODO: validate return type
+            plp.j(&*return_label);
+            index = end_index;
         }
-        else if token.value == "{"
+        else
         {
-            panic!("Nested scopes currently unsupported");
+            let (code, end_index) = compile_statement(tokens, start_index, method_symbol, current_namespace, registers, symbol_table);
+            plp.code.push_str(&*code);
+            index = end_index;
+        }
+    }
+
+    plp.label(&*return_label);
+    compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
+    plp.ret();
+}
+
+pub fn compile_save_method_state(   method_symbol: &Symbol,
+                                    registers: (&str, &str),
+                                    plp: &mut PLPWriter)
+{
+    // Save current method state to the stack
+    // *Determine size and location of static memory
+    let (var_count, label_name) = match method_symbol.symbol_class {
+            SymbolClass::Variable(ref variable_type) => {
+                    panic!("Expected Function found Variable");
+                },
+            SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Structure(subtype) => {
+                    panic!("Expected Function found Structure");
+                }
+        };
+    // *Push static memory
+    plp.li(registers.0, label_name);
+    for var_index in 0..var_count
+    {
+        let offset = 4 * var_index;
+        plp.lw(registers.1, offset, registers.0);
+        plp.push(registers.1);
+    }
+    // *Push arg_stack pointer
+    plp.li(registers.0, "arg_stack");
+    plp.lw(registers.1, 0, registers.0);
+    plp.push(registers.1);
+    // *Load $a0 as the new arg_stack pointer
+    plp.sw("$a0", 0, registers.0);
+
+    // *Push caller
+    plp.li(registers.0, "caller");
+    plp.lw(registers.1, 0, registers.0);
+    plp.push(registers.1);
+    // *Make call_buffer the current caller
+    plp.li(registers.1, "call_buffer");
+    plp.lw(registers.1, 0, registers.1);
+    plp.sw(registers.1, 0, registers.0);
+}
+
+pub fn compile_restore_method_state(method_symbol: &Symbol,
+                                    registers: (&str, &str),
+                                    plp: &mut PLPWriter)
+{
+    // Save current method state to the stack
+    // *Determine size and location of static memory
+    let (var_count, label_name) = match method_symbol.symbol_class {
+            SymbolClass::Variable(ref variable_type) => {
+                    panic!("Expected Function found Variable");
+                },
+            SymbolClass::Function(return_type, argument_types, label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Structure(subtype) => {
+                    panic!("Expected Function found Structure");
+                }
+        };
+
+    // *Restore caller
+    plp.li(registers.0, "caller");
+    plp.pop(registers.1);
+    plp.sw(registers.1, 0, registers.0);
+
+    // *Restore arg_stack pointer (discard old value)
+    plp.li(registers.0, "arg_stack");
+    plp.pop(registers.1);
+    plp.sw(registers.1, 0, registers.0);
+
+    // *Restore static memory
+    plp.li(registers.0, label_name);
+    for var_index in (0..var_count).rev()
+    {
+        let offset = 4 * var_index;
+        plp.pop(registers.1);
+        plp.sw(registers.1, offset, registers.0);
+    }
+}
+
+// TODO: enable
+pub fn compile_conditional( tokens: &Vec<Token>,
+                            start: usize,
+                            base_label_name: &str,
+                            current_namespace: &str,
+                            temp_register: &str, // indirect
+                            load_registers: (&str, &str),
+                            target_register: &str,
+                            symbols: &StaticSymbolTable)
+                            -> (String, usize)
+{
+    let mut plp = PLPWriter::new();
+    let mut index = start;
+    let mut token = &tokens[index];
+
+    if token.value != "if"
+    {
+        panic!("compile_conditional: Expected 'if' found {}", token.value);
+    }
+
+    let (code, result_type, end_index) = compile_arithmetic_statement(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols);
+    if (result_type != "boolean")
+    {
+        panic!("compile_conditional: Expected evaluation of boolean, found evaluation of {}", result_type);
+    }
+
+    // first index AFTER the sequence
+    index += 1;
+
+    (plp.code, index)
+}
+
+/// A statement includes any executable statement inside an executable body.
+///
+/// Specifically, this includes:
+/// * method calls
+/// * variable assignments
+/// * symbol sequences (e.g. accessed method calls and accessed variables)
+/// * conditional statements
+/// * loops
+///
+/// This does not support:
+/// * blocks, except those of conditionals or loops
+/// * method declarations
+/// * class declarations
+///
+/// This explicitly ignores:
+/// * variable declarations
+///
+/// range should start ON the open brace for the method body, and
+/// range should end ON the closing brace for the method body
+/// returns the index AFTER the end of this statement (e.g. after a semi-colon or end brace)
+/// @return (code, end_index)
+pub fn compile_statement(   tokens: &Vec<Token>,
+                            start_index: usize,
+                            method_symbol: &Symbol,
+                            current_namespace: &str,
+                            registers: (&str, &str, &str, &str, &str),
+                            symbol_table: &StaticSymbolTable) -> (String, usize)
+{
+    let mut plp = PLPWriter::new();
+    let mut index: usize = start_index;
+    let target_register = registers.3;
+    let address_register = registers.4;
+
+    // ASSUMPTION: before calling a method:
+    // * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
+    // * all arguments for the method will be pushed to the stack
+    // * the stack pointer $sp at the top of the argument stack will be passed to $a0
+
+    // ASSUMPTION: Methods will store their argument pointer in static memory directly above the method body
+
+    while index < tokens.len()
+    {
+        let token = &tokens[index];
+
+        if token.value == "{"
+        {
+            panic!("compile_statement: Nested scopes currently unsupported");
+        }
+        else if token.value == ";"
+        {
+            // Index AFTER the last token in this statement
+            index += 1;
+            break;
         }
         else if token.name == "type" // || token.name == "identifier"
         {
-            panic!("Local variable declarations currently unsupported");
+            // IGNORE
+            index += 1;
         }
-        else if token.value == "if"
+        else if token.name.starts_with("literal") // || token.name == "identifier"
         {
-            // parse if body
-            // Unsupported for now
+            panic!("compile_statement: Literal on left hand side");
         }
+        // TODO: support structures below
         else if token.name == "construct.conditional"
         {
-            // parse conditional
-            // Unsupported for now
+            panic!("compile_statement: Conditionals currently unsupported");
+        }
+        else if token.name == "construct.handles"
+        {
+            panic!("compile_statement: Exception handles currently unsupported");
+        }
+        else if token.name == "construct.switch"
+        {
+            panic!("compile_statement: Switch statements currently unsupported");
+        }
+        else if token.name == "construct.loop"
+        {
+            panic!("compile_statement: Loops currently unsupported");
+        }
+        else if token.name == "construct.type"
+        {
+            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}\t{}", token.name, token.value);
+        }
+        else if token.name == "identifier"
+        {
+            // TODO: determine memory location of nested access
+            let (code, new_index) = compile_symbol_sequence(tokens,
+                                                            index,
+                                                            current_namespace,
+                                                            registers.0,
+                                                            (registers.1, registers.2),
+                                                            target_register,
+                                                            Some(address_register),
+                                                            symbol_table);
+            plp.code.push_str(&*code);
+            index = new_index;
+        }
+        else if token.value == "="
+        {
+            plp.push(address_register);
+            let (code, result_type, new_index) = compile_arithmetic_statement(  tokens,
+                                                                                index + 1,
+                                                                                current_namespace,
+                                                                                registers.0,
+                                                                                (registers.1, registers.2),
+                                                                                target_register,
+                                                                                symbol_table);
+            plp.code.push_str(&*code);
+            plp.pop(address_register);
+            plp.sw(target_register, 0, address_register);
+            index = new_index;
+        }
+        else if token.value == "+="
+        {
+            plp.push(address_register);
+            let (code, result_type, new_index) = compile_arithmetic_statement(  tokens,
+                                                                                index + 1,
+                                                                                current_namespace,
+                                                                                registers.0,
+                                                                                (registers.1, registers.2),
+                                                                                target_register,
+                                                                                symbol_table);
+            plp.code.push_str(&*code);
+            plp.pop(address_register);
+            plp.lw(registers.0, 0, address_register);
+            plp.addu(target_register, target_register, registers.0);
+            plp.sw(target_register, 0, address_register);
+
+            index = new_index;
+        }
+        else if token.value == "-="
+        {
+            panic!("compile_statement: Unsupported operator: {}\t{}", token.name, token.value);
+        }
+        else if token.value == "*="
+        {
+            panic!("compile_statement: Unsupported operator: {}\t{}", token.name, token.value);
         }
         else
         {
-            panic!("Unexpected token: {}\t{}", token.name, token.value);
-        }
-
-        index += 1;
-    }
-}
-
-pub fn compile_conditional( tokens: &Vec<Token>,
-                            start: usize,
-                            current_namespace: &str,
-                            temp_register: &str, // indirect
-                            load_registers: (&str, &str),
-                            target_register: &str,
-                            symbols: &StaticSymbolTable)
-                            -> (String, usize)
-{
-    let mut plp = PLPWriter::new();
-    let mut index = start;
-    while index < (tokens.len() - 1)
-    {
-        let token = &tokens[index];
-
-    }
-
-    // first index AFTER the sequence
-    index += 1;
-
-    (plp.code, index)
-}
-
-pub fn compile_statement(   tokens: &Vec<Token>,
-                            start: usize,
-                            current_namespace: &str,
-                            temp_register: &str, // indirect
-                            load_registers: (&str, &str),
-                            target_register: &str,
-                            symbols: &StaticSymbolTable)
-                            -> (String, usize)
-{
-    let mut plp = PLPWriter::new();
-    let mut index = start;
-    while index < (tokens.len() - 1)
-    {
-        let token = &tokens[index];
-
-        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
-        if token.name == "identifier"
-        {
-            let lookahead_token = &tokens[index + 1];
-
-            // Method call
-            if lookahead_token.value == "("
-            {
-                // compile the method and append it directly to the compiled plp code
-                let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
-                plp.code.push_str(&*method_code);
-                index = new_index;
-
-                // TODO: pop previous reference from stack
-                // TODO: if next token is "." then push value to stack
-            }
-            // Variable read
-            else
-            {
-                let symbol = symbols.lookup_variable(current_namespace, &*token.value).unwrap();
-                match symbol.location
-                {
-                    SymbolLocation::Register(name) => {
-                            plp.mov(target_register, name);
-                        },
-                    SymbolLocation::Memory(ref address) => {
-                            plp.li(load_registers.0, &*address.label_name);
-                            plp.lw(target_register, address.offset, load_registers.0);
-                        },
-                    SymbolLocation::InstancedMemory(offset) => {
-                            plp.lw(target_register, offset, target_register);
-                        },
-                    SymbolLocation::MethodArgument(offset) => {
-                            //TODO: account for method argument
-                            panic!("compile_statment: method arguments currently unsupported!");
-                        },
-                    SymbolLocation::Structured => {
-                            // TODO: append to namespace
-                        },
-                };
-
-                // TODO: pop previous reference from stack
-                // TODO: if next token is "." then push value to stack
-
-                index += 1;
-            }
-        }
-        else if token.value == "."
-        {
-            // Access references are handled when it's children are parsed (in the if block above)
-            // so skip this token
-            index += 1;
-            continue;
-        }
-        else
-        {
-            break;
+            panic!("compile_statement: Unexpected token: {}\t{}", token.name, token.value);
         }
     }
-    // first index AFTER the sequence
-    index += 1;
 
-    (plp.code, index)
+    return (plp.code, index);
 }
 
 /// Write PLP code to evaluate the given symbol sequence, and load the result into a specific register
@@ -183,17 +342,24 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                                 temp_register: &str,
                                 load_registers: (&str, &str),
                                 target_register: &str,
+                                address_register: Option<&str>,
                                 symbols: &StaticSymbolTable)
                                 -> (String, usize)
 {
     // TODO: handle array access
 
-    // TODO: push $this to stack
-
     let mut plp = PLPWriter::new();
     let mut index = start;
+    let mut valid_address = false;
+
+    // Save call buffer
+    plp.lw(load_registers.0, 0, "call_buffer");
+    plp.push(load_registers.0);
+
     while index < (tokens.len() - 1)
     {
+        // The only way to be valid is to load a variable read with a memory address
+        valid_address = false;
         let token = &tokens[index];
 
         // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
@@ -209,6 +375,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 plp.code.push_str(&*method_code);
                 index = new_index;
 
+                // TODO: panic if a method call is the last symbol, and address_register is Some(_)
                 // TODO: pop previous reference from stack
                 // TODO: if next token is "." then push value to stack
             }
@@ -224,9 +391,28 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                     SymbolLocation::Memory(ref address) => {
                             plp.li(load_registers.0, &*address.label_name);
                             plp.lw(target_register, address.offset, load_registers.0);
+
+                            match address_register
+                            {
+                                Some(register_name) =>
+                                {
+                                    // Load address into address_register
+                                    plp.li(load_registers.1, &*address.offset.to_string());
+                                    plp.addu(register_name, load_registers.0, load_registers.1);
+                                    valid_address = true;
+                                },
+                                None    =>
+                                {
+                                    /* DO NOTHING */
+                                },
+                            }
                         },
                     SymbolLocation::InstancedMemory(offset) => {
-                            plp.lw(target_register, offset, target_register);
+                            // Use base address from call_buffer
+                            plp.li(load_registers.0, "call_buffer");
+                            plp.lw(load_registers.0, offset, load_registers.0);
+
+                            plp.lw(target_register, offset, load_registers.0);
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             //TODO: account for method argument
@@ -237,8 +423,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                 };
 
-                // TODO: pop previous reference from stack
-                // TODO: if next token is "." then push value to stack
+                // Load result into call buffer, for next token
+                plp.sw(target_register, 0, "call_buffer");
 
                 index += 1;
             }
@@ -257,6 +443,19 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     }
     // first index AFTER the sequence
     index += 1;
+
+    // Restore previous call_buffer
+    plp.pop(load_registers.0);
+    plp.sw(load_registers.0, 0, "call_buffer");
+
+    if !valid_address
+    {
+        match address_register
+        {
+            Some(_) => { panic!("Cannot store address of register or method call"); },
+            None    => { /* DO NOTHING */ },
+        }
+    }
 
     (plp.code, index)
 }
@@ -354,6 +553,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     return (plp.code, return_type.to_string(), end_index + 1);
 }
 
+/// Compiles one or more symbol sequences linked by zero or more operators.
 /// @return (code, result_type, end_index)
 pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                start: usize,                   // used
@@ -444,7 +644,7 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
     else if token.name == "identifier"
     {
         // handle identifier
-        let (access_code, new_index) = compile_symbol_sequence(tokens, start, current_namespace, temp_register, load_registers, target_register, symbols);
+        let (access_code, new_index) = compile_symbol_sequence(tokens, start, current_namespace, temp_register, load_registers, target_register, None, symbols);
         plp.code.push_str(&*access_code);
 
         end_index = new_index;
