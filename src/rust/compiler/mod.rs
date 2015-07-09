@@ -194,7 +194,7 @@ pub fn compile_conditional( tokens: &Vec<Token>,
     }
 
     let (code, result_type, end_index) = compile_arithmetic_statement(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols);
-    if (result_type != "boolean")
+    if result_type != "boolean"
     {
         panic!("compile_conditional: Expected evaluation of boolean, found evaluation of {}", result_type);
     }
@@ -459,8 +459,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             //TODO: account for method argument
-                            panic!("compile_symbol_sequence: method arguments currently unsupported!");
                             println!("\tcompile_symbol_sequence: found {}: MethodArgument", &*token.value);
+                            panic!("compile_symbol_sequence: method arguments currently unsupported!");
                         },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
@@ -573,20 +573,20 @@ pub fn compile_method_call( tokens: &Vec<Token>,
         SymbolClass::Variable(ref variable_type) => {
                 panic!("Expected Function found Variable");
             },
-        SymbolClass::Function(ref return_type, ref argument_types, ref static_label, static_length) => return_type,
+        SymbolClass::Function(ref return_type, _, _, _) => return_type,
         SymbolClass::Structure(ref subtype) => {
-                panic!("Expected Function found Structure");
+                panic!("Expected Function found {}", subtype);
             }
     };
     match method_symbol.location
     {
-        SymbolLocation::Register(ref name) => {
+        SymbolLocation::Register(_) => {
                 panic!("Found method at a Register instead of a constant Memory address");
             },
         SymbolLocation::Memory(ref address) => {
                 plp.call(&*address.label_name);
             },
-        SymbolLocation::InstancedMemory(offset) => {
+        SymbolLocation::InstancedMemory(_) => {
                 panic!("Found method at InstancedMemory instead of a constant Memory address");
             },
         SymbolLocation::MethodArgument(offset) => {
@@ -690,7 +690,7 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
                             plp: &mut PLPWriter)            // used
                             -> usize
 {
-    let mut token = &tokens[start];
+    let token = &tokens[start];
     let mut end_index = start;
 
     if token.name.starts_with("literal")
