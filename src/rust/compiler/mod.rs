@@ -33,6 +33,20 @@ fn get_static_allocation(method_symbol: &Symbol) -> (String, u16)
         }
 }
 
+/// @return (memory_label, memory_size)
+fn get_return_type_of(method_symbol: &Symbol) -> String
+{
+    match method_symbol.symbol_class {
+            SymbolClass::Variable(_) => {
+                    panic!("Expected Function found Variable");
+                },
+            SymbolClass::Function(ref return_type, _, _, _) => return_type.clone(),
+            SymbolClass::Structure(ref subtype) => {
+                    panic!("Expected Function found {}", subtype);
+                }
+        }
+}
+
 /// ASSUMPTION: before calling a method:
 /// * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
 /// * all arguments for the method will be pushed to the stack
@@ -58,6 +72,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     // Get method information
     let (method_label, return_label) = get_method_labels(method_symbol);
     let (memory_label, memory_size) = get_static_allocation(method_symbol);
+    let expected_return_type = get_return_type_of(method_symbol);
 
     // Compile method headers
     plp.label(&*memory_label);
@@ -90,7 +105,11 @@ pub fn compile_method_body( tokens: &Vec<Token>,
                                                                                 "$v0",
                                                                                 symbol_table);
             plp.code.push_str(&*code);
-            // TODO: validate return type
+            if result_type != expected_return_type
+            {
+                panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
+            }
+            
             plp.j(&*return_label);
             index = end_index;
             println!("compile_method_body: new index is {}", index);
