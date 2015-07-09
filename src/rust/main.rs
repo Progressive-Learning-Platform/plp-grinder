@@ -70,13 +70,10 @@ fn main()
     if was_compile_successful
     {
         let mut tokens: Vec<Token> = lex_file(source_file);
-
-        println!("\n\nFound Tokens:");
-        tokens.print_to(lex_output_file, true);
+        tokens.print_to(lex_output_file, false);
 
         remove_meta(&mut tokens);
-        println!("\n\nPerged Tokens:");
-        tokens.print_to(preprocessed_output_file, true);
+        tokens.print_to(preprocessed_output_file, false);
 
         let mut symbols_table: SymbolTable = SymbolTable::new();
         let class_structure = parse_class(&tokens, 1, &mut symbols_table);
