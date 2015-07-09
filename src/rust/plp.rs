@@ -30,7 +30,7 @@ impl PLPWriter
 				false => " ",
 			};
 
-		for index in (0..self.indent_level)
+		for _ in (0..self.indent_level)
 		{
 			string.push_str(indent);
 		}
@@ -38,13 +38,14 @@ impl PLPWriter
 		string
 	}
 
+	#[allow(dead_code)]
 	pub fn reset(&mut self)
 	{
 		self.indent_level = 0;
 		self.code = String::new();
 	}
 
-	pub fn li(&mut self, register: &str, value: &str) -> String
+	pub fn li(&mut self, register: &str, value: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("li ");
@@ -54,10 +55,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn mov(&mut self, register_to: &str, register_from: &str) -> String
+	pub fn mov(&mut self, register_to: &str, register_from: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("move ");
@@ -67,10 +67,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn addu(&mut self, register_sum: &str, register_addend1: &str, register_addend2: &str) -> String
+	pub fn addu(&mut self, register_sum: &str, register_addend1: &str, register_addend2: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("addu ");
@@ -82,10 +81,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn subu(&mut self, register_difference: &str, register_addend1: &str, register_addend2: &str) -> String
+	pub fn subu(&mut self, register_difference: &str, register_addend1: &str, register_addend2: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("subu ");
@@ -97,10 +95,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn mullo(&mut self, register_product: &str, register_multiplicand1: &str, register_multiplicand2: &str) -> String
+	pub fn mullo(&mut self, register_product: &str, register_multiplicand1: &str, register_multiplicand2: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("mullo ");
@@ -112,10 +109,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn sw(&mut self, register_target: &str, offset: u16, register_address: &str) -> String
+	pub fn sw(&mut self, register_target: &str, offset: u16, register_address: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("sw ");
@@ -127,10 +123,9 @@ impl PLPWriter
 		code.push_str(")\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn lw(&mut self, register_target: &str, offset: u16, register_address: &str) -> String
+	pub fn lw(&mut self, register_target: &str, offset: u16, register_address: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("lw ");
@@ -142,10 +137,9 @@ impl PLPWriter
 		code.push_str(")\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn push(&mut self, register_target: &str) -> String
+	pub fn push(&mut self, register_target: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("push ");
@@ -153,10 +147,9 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn pop(&mut self, register_target: &str) -> String
+	pub fn pop(&mut self, register_target: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("pop ");
@@ -164,33 +157,29 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn call(&mut self, function_label: &str) -> String
+	pub fn call(&mut self, function_label: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("call ");
 		code.push_str(function_label);
 		code.push_str("\n");
-		code.push_str("nop");
-		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
+		self.nop();
 	}
 
-	pub fn nop(&mut self) -> String
+	pub fn nop(&mut self)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("nop");
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn label(&mut self, label: &str) -> String
+	pub fn label(&mut self, label: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str(label);
@@ -198,10 +187,10 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn beq(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str) -> String
+	#[allow(dead_code)]
+	pub fn beq(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("beq ");
@@ -213,10 +202,10 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn bne(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str) -> String
+	#[allow(dead_code)]
+	pub fn bne(&mut self, register_comparator1: &str, register_comparator2: &str, target_label: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("bne ");
@@ -228,31 +217,29 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 
-	pub fn ret(&mut self) -> String
+	pub fn ret(&mut self)
 	{
 		let mut code = self.create_indented_string();
-		code.push_str("return\nnop\n");
+		code.push_str("return\n");
 
 		self.code.push_str(&*code);
-		return code;
+		self.nop();
 	}
 
-	pub fn j(&mut self, label: &str) -> String
+	pub fn j(&mut self, label: &str)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str("j ");
 		code.push_str(label);
 		code.push_str("\n");
-		code.push_str("nop\n");
 
 		self.code.push_str(&*code);
-		return code;
+		self.nop();
 	}
 
-	pub fn space(&mut self, amount: u16) -> String
+	pub fn space(&mut self, amount: u16)
 	{
 		let mut code = self.create_indented_string();
 		code.push_str(".space ");
@@ -260,6 +247,5 @@ impl PLPWriter
 		code.push_str("\n");
 
 		self.code.push_str(&*code);
-		return code;
 	}
 }
