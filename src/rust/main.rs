@@ -20,6 +20,7 @@ use lexer::*;
 use support::*;
 use files::dump;
 use compiler::*;
+use plp::PLPWriter;
 
 fn main()
 {
@@ -86,15 +87,22 @@ fn main()
                 _ => { panic!("Main found was not a function!"); },
             };
 
-        let mut plp_string = String::new();
-        plp_string.push_str(".org 0x10000000\n");
-        plp_string.push_str("li $sp, 0x10fffffc\n");
-        plp_string.push_str("call ");
-        plp_string.push_str(&*main_label);
-        plp_string.push_str("\nnop\nj end\nnop\n");
-        plp_string.push_str("call_buffer:\n\t.word 0\n");
-        plp_string.push_str("caller:\n\t.word 0\n");
-        plp_string.push_str("arg_stack:\n\t.word 0\n");
+        let mut plp = PLPWriter::new();
+        plp.org("0x10000000");
+        plp.li("$sp", "0x10fffffc");
+        plp.println();
+
+        plp.call("&*main_label");
+        plp.j("end");
+        plp.println();
+
+        plp.label("call_buffer");
+        plp.word(0);
+        plp.label("caller");
+        plp.word(0);
+        plp.label("arg_stack");
+        plp.word(0);
+        plp.println();
         for static_method in class_structure.static_methods
         {
             let range = (static_method.0, static_method.1);
@@ -106,11 +114,11 @@ fn main()
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
             let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
-            plp_string.push_str(&*code);
+            plp.code.push_str(&*code);
         }
-        plp_string.push_str("end:");
+        plp.label("end");
 
-        dump("output.asm", plp_string);
+        dump("output.asm", plp.code);
     }
 }
 
