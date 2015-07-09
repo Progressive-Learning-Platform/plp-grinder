@@ -1,9 +1,43 @@
 use std::vec::Vec;
 use tokens::*;
 use symbols::*;
+use symbols::symbol_table::*;
 use support::*;
 use plp::PLPWriter;
 
+/// @return: (method_label, return_label)
+fn get_method_labels(method_symbol: &Symbol) -> (String, String)
+{
+    let method_label = match method_symbol.location {
+        SymbolLocation::Memory(ref address) => address.label_name.clone(),
+        _ => { panic!("compile_method_body: Expected Memory address for method"); },
+    };
+
+    let mut return_label = method_label.clone();
+    return_label.push_str("_return");
+
+    (method_label, return_label)
+}
+
+/// @return (memory_label, memory_size)
+fn get_static_allocation(method_symbol: &Symbol) -> (String, u16)
+{
+    match method_symbol.symbol_class {
+            SymbolClass::Variable(_) => {
+                    panic!("Expected Function found Variable");
+                },
+            SymbolClass::Function(_, _, ref label_name, var_count) => (label_name.clone(), var_count as u16),
+            SymbolClass::Structure(ref subtype) => {
+                    panic!("Expected Function found {}", subtype);
+                }
+        }
+}
+
+/// ASSUMPTION: before calling a method:
+/// * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
+/// * all arguments for the method will be pushed to the stack
+/// * the stack pointer $sp at the top of the argument stack will be passed to $a0
+///
 /// range should start ON the open brace for the method body, and
 /// range should end AFTER the closing brace for the method body
 pub fn compile_method_body( tokens: &Vec<Token>,
@@ -14,46 +48,29 @@ pub fn compile_method_body( tokens: &Vec<Token>,
                             symbol_table: &StaticSymbolTable) -> String
 {
     let (start_index, end_index) = range;
-
-    let mut plp = PLPWriter::new();
     let mut index: usize = start_index;
+    let mut plp = PLPWriter::new();
 
+    // Validate start token
     if tokens[start_index].value != "{" { panic!("Expected '{{' received: {}", tokens[start_index].value); }
     else { index += 1; }
 
-    let method_name = match method_symbol.location {
-        SymbolLocation::Memory(ref address) => address.label_name.clone(),
-        _ => { panic!("compile_method_body: Expected Memory address for method"); },
-    };
-    let mut return_label = method_name.clone();
-    return_label.push_str("_return");
+    // Get method information
+    let (method_label, return_label) = get_method_labels(method_symbol);
+    let (memory_label, memory_size) = get_static_allocation(method_symbol);
 
-    let (memory_label, memory_size) = match method_symbol.symbol_class {
-            SymbolClass::Variable(_) => {
-                    panic!("Expected Function found Variable");
-                },
-            SymbolClass::Function(_, _, ref label_name, var_count) => (label_name, var_count as u16),
-            SymbolClass::Structure(ref subtype) => {
-                    panic!("Expected Function found {}", subtype);
-                }
-        };
-    plp.label(memory_label);
+    // Compile method headers
+    plp.label(&*memory_label);
     plp.space(memory_size);
 
-    plp.label(&*method_name);
+    plp.label(&*method_label);
     compile_save_method_state(method_symbol, (registers.0, registers.1), &mut plp);
 
-    // ASSUMPTION: before calling a method:
-    // * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
-    // * all arguments for the method will be pushed to the stack
-    // * the stack pointer $sp at the top of the argument stack will be passed to $a0
-
-    // ASSUMPTION: Methods will store their argument pointer in static memory directly above the method body
-
-    let mut realz_namespace = String::new();
-    realz_namespace.push_str(current_namespace);
-    realz_namespace.push_str("_");
-    realz_namespace.push_str(&*method_symbol.name);
+    // Get namespace of method block (the method's namespace + the method's name)
+    let mut inner_namespace = String::new();
+    inner_namespace.push_str(current_namespace);
+    inner_namespace.push_str("_");
+    inner_namespace.push_str(&*method_symbol.name);
 
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
     while index < end_index - 1
@@ -67,7 +84,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
 
             let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
                                                                                 index + 1,
-                                                                                &*realz_namespace,
+                                                                                &*inner_namespace,
                                                                                 registers.0,
                                                                                 (registers.1, registers.2),
                                                                                 "$v0",
@@ -81,7 +98,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
         else
         {
             println!("compile_method_body: statement found at {}", index);
-            let (code, end_index) = compile_statement(tokens, index, method_symbol, &*realz_namespace, registers, symbol_table);
+            let (code, end_index) = compile_statement(tokens, index, method_symbol, &*inner_namespace, registers, symbol_table);
             plp.code.push_str(&*code);
             index = end_index;
             println!("compile_method_body: new index is {}", index);
@@ -361,7 +378,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
 
 /// Write PLP code to evaluate the given symbol sequence, and load the result into a specific register
 /// A sequence can be:
-/// * a  simple variable reference,
+/// * a  variable reference,
 /// * a method call,
 /// * a variable accessed from another symbol (e.g. foo.bar or Foo.staticBar),
 /// * a method accessed from another symbol (e.g. foo.bar() or Foo.staticBar()), or
