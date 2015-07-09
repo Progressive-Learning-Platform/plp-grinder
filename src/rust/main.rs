@@ -23,7 +23,8 @@ use compiler::*;
 
 fn main()
 {
-    let source_file = "sampleData/BasicArithmatic.java";
+    let mut temp_source: String =  String::new();
+    let default_source = "sampleData/BasicArithmatic.java";
     let lex_output_file = "sampleData/output/stable/BasicArithmatic.java.lexed";
     let preprocessed_output_file = "sampleData/output/stable/BasicArithmatic.java.preprocessed";
 
@@ -45,11 +46,11 @@ fn main()
     {
         let brief = format!("Usage: grinder File [options]");
         println!("{}", opts.usage(&brief));
-        match matches.opt_str("s")
+        temp_source = match matches.opt_str("s")
         {
-            Some(x) => println!("{}", x),
-            None => print!("\n"),
-        }
+            Some(ref x) => x.clone(),
+            None => String::new(),
+        };
     }
 
     //TODO match options
@@ -57,6 +58,12 @@ fn main()
         println!("Free arguments: {:?}", matches.free);
     }
 
+    if temp_source.is_empty()
+    {
+        temp_source = default_source.to_string();
+    }
+
+    let source_file = &*temp_source.clone();
     let was_compile_successful = compile_oracle(&["javac", source_file]);
 
     if was_compile_successful
