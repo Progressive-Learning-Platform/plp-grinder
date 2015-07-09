@@ -69,7 +69,7 @@ fn main()
 
     if was_compile_successful
     {
-        let mut tokens: Vec<Token> = lex_file(source_file);
+        let mut tokens: Vec<Token> = lex_file(source_file, false);
         tokens.print_to(lex_output_file, false);
 
         remove_meta(&mut tokens);
