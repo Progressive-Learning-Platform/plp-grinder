@@ -57,14 +57,12 @@ pub fn find_next(tokens: &Vec<Token>, start: usize, symbol: &str) -> Option<usiz
 
 pub fn execute_process(args: &[&str]) -> bool
 {
-    let was_successful: bool;
-    let mut index = 0;
-    let mut output = Command::new(args[0])
-                        .arg(args[1])
-                        .output()
-                        .unwrap_or_else(|e| {panic!("Failed to execute process: {}", e) });
+    let output = Command::new(args[0])
+                    .args(&args[1..])
+                    .output()
+                    .unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
 
-    was_successful = output.status.success();
+    let was_successful: bool = output.status.success();
 
     if was_successful
     {
@@ -76,5 +74,6 @@ pub fn execute_process(args: &[&str]) -> bool
         println!("{} stderr: {}", args[0], String::from_utf8_lossy(&output.stderr));
     }
     println!("\n");
+
     false
 }
