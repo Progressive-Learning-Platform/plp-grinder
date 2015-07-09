@@ -1,6 +1,5 @@
 use std::vec::Vec;
 use tokens::*;
-use lexer::*;
 use symbols::*;
 use support::*;
 use plp::PLPWriter;
@@ -30,12 +29,12 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     return_label.push_str("_return");
 
     let (memory_label, memory_size) = match method_symbol.symbol_class {
-            SymbolClass::Variable(ref variable_type) => {
+            SymbolClass::Variable(_) => {
                     panic!("Expected Function found Variable");
                 },
-            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (label_name, var_count as u16),
+            SymbolClass::Function(_, _, ref label_name, var_count) => (label_name, var_count as u16),
             SymbolClass::Structure(ref subtype) => {
-                    panic!("Expected Function found Structure");
+                    panic!("Expected Function found {}", subtype);
                 }
         };
     plp.label(memory_label);
@@ -104,12 +103,12 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
     // Save current method state to the stack
     // *Determine size and location of static memory
     let (var_count, label_name) = match method_symbol.symbol_class {
-            SymbolClass::Variable(ref variable_type) => {
+            SymbolClass::Variable(_) => {
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
             SymbolClass::Structure(ref subtype) => {
-                    panic!("Expected Function found Structure");
+                    panic!("Expected Function found {}", subtype);
                 }
         };
     // *Push static memory
