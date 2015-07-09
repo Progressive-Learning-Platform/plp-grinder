@@ -106,7 +106,7 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
             SymbolClass::Variable(_) => {
                     panic!("Expected Function found Variable");
                 },
-            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Function(_, _, ref label_name, var_count) => (var_count as u16, label_name),
             SymbolClass::Structure(ref subtype) => {
                     panic!("Expected Function found {}", subtype);
                 }
@@ -143,12 +143,12 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
     // Save current method state to the stack
     // *Determine size and location of static memory
     let (var_count, label_name) = match method_symbol.symbol_class {
-            SymbolClass::Variable(ref variable_type) => {
+            SymbolClass::Variable(_) => {
                     panic!("Expected Function found Variable");
                 },
-            SymbolClass::Function(ref return_type, ref argument_types, ref label_name, var_count) => (var_count as u16, label_name),
+            SymbolClass::Function(_, _, ref label_name, var_count) => (var_count as u16, label_name),
             SymbolClass::Structure(ref subtype) => {
-                    panic!("Expected Function found Structure");
+                    panic!("Expected Function found {}", subtype);
                 }
         };
 
@@ -173,6 +173,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
 }
 
 // TODO: enable
+#[allow(dead_code)]
 pub fn compile_conditional( tokens: &Vec<Token>,
                             start: usize,
                             base_label_name: &str,
