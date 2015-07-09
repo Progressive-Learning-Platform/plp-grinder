@@ -36,15 +36,16 @@ fn get_static_allocation(method_symbol: &Symbol) -> (String, u16)
 /// @return (memory_label, memory_size)
 fn get_return_type_of(method_symbol: &Symbol) -> String
 {
-    match method_symbol.symbol_class {
-            SymbolClass::Variable(_) => {
-                    panic!("Expected Function found Variable");
-                },
-            SymbolClass::Function(ref return_type, _, _, _) => return_type.clone(),
-            SymbolClass::Structure(ref subtype) => {
-                    panic!("Expected Function found {}", subtype);
-                }
-        }
+    match method_symbol.symbol_class
+    {
+        SymbolClass::Variable(_) => {
+                panic!("Expected Function found Variable");
+            },
+        SymbolClass::Function(ref return_type, _, _, _) => return_type.clone(),
+        SymbolClass::Structure(ref subtype) => {
+                panic!("Expected Function found {}", subtype);
+            }
+    }
 }
 
 /// ASSUMPTION: before calling a method:
@@ -74,7 +75,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     let (memory_label, memory_size) = get_static_allocation(method_symbol);
     let expected_return_type = get_return_type_of(method_symbol);
 
-    // Compile method headers
+    // Compile method headers (save method state and setup method body)
     plp.label(&*memory_label);
     plp.space(memory_size);
 
@@ -87,13 +88,43 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     inner_namespace.push_str("_");
     inner_namespace.push_str(&*method_symbol.name);
 
+    // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
-    while index < end_index - 1
+    compile_body(tokens, &*expected_return_type, &*return_label, index, method_symbol, &*inner_namespace, registers, symbol_table, &mut plp);
+
+    // Compile method footers (restore method state, cleanup stack, and return)
+    println!("Method compiled: {}\n", inner_namespace);
+    plp.label(&*return_label);
+    compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
+    plp.ret();
+
+    plp.code
+}
+
+/// @return index AFTER the closing brace
+pub fn compile_body(tokens: &Vec<Token>,
+                    expected_return_type: &str,
+                    return_label: &str,
+                    start_index: usize,
+                    method_symbol: &Symbol,
+                    inner_namespace: &str,
+                    registers: (&str, &str, &str, &str, &str),
+                    symbol_table: &StaticSymbolTable,
+                    plp: &mut PLPWriter) -> usize
+{
+    let mut index = start_index;
+    while index < tokens.len()
     {
         let token = &tokens[index];
-        println!("compile_method_body: compiling token | {} | {}: {}", index, token.value, token.name);
+        println!("compile_body: compiling token | {} | {}: {}", index, token.value, token.name);
 
-        if token.value == "return"
+        if token.value == "}"
+        {
+            // go to index AFTER ending brace
+            index += 1;
+            break;
+        }
+        else if token.value == "return"
         {
             println!("compile_method_body: return token found at {}", index);
 
@@ -107,9 +138,9 @@ pub fn compile_method_body( tokens: &Vec<Token>,
             plp.code.push_str(&*code);
             if result_type != expected_return_type
             {
-                panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
+                //panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
             }
-            
+
             plp.j(&*return_label);
             index = end_index;
             println!("compile_method_body: new index is {}", index);
@@ -124,12 +155,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
         }
     }
 
-    println!("\n");
-    plp.label(&*return_label);
-    compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
-    plp.ret();
-
-    plp.code
+    return index;
 }
 
 pub fn compile_save_method_state(   method_symbol: &Symbol,
