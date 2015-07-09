@@ -45,6 +45,31 @@ impl PLPWriter
 		self.code = String::new();
 	}
 
+	pub fn println(&mut self)
+	{
+		self.code.push_str("\n");
+	}
+
+	pub fn org(&mut self, address: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str(".org ");
+		code.push_str(address);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn word(&mut self, initial_value: u16)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str(".word ");
+		code.push_str(&*initial_value.to_string());
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
 	pub fn li(&mut self, register: &str, value: &str)
 	{
 		let mut code = self.create_indented_string();
