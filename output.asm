@@ -1,15 +1,18 @@
 .org 0x10000000
 li $sp, 0x10fffffc
-call BasicArithmatic_main
+
+call &*main_label
 nop
 j end
 nop
+
 call_buffer:
-	.word 0
+.word 0
 caller:
-	.word 0
+.word 0
 arg_stack:
-	.word 0
+.word 0
+
 BasicArithmatic_casualMethod_static:
 .space 0
 BasicArithmatic_casualMethod:
