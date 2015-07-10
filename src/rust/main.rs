@@ -65,7 +65,7 @@ fn main()
     }
 
     let source_file = &*temp_source.clone();
-    let was_compile_successful = compile_oracle(&["javac", source_file]);
+    let was_compile_successful = compile_oracle(&["javac", "-d", "output/temp/class", source_file]);
 
     if was_compile_successful
     {
