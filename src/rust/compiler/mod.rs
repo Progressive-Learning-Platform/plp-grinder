@@ -90,7 +90,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
 
     // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
-    compile_body(tokens, &*expected_return_type, &*return_label, index, method_symbol, &*inner_namespace, registers, symbol_table, &mut plp);
+    compile_body(tokens, &*expected_return_type, &*return_label, index, &*inner_namespace, registers, symbol_table, &mut plp);
 
     // Compile method footers (restore method state, cleanup stack, and return)
     println!("Method compiled: {}\n", inner_namespace);
@@ -106,7 +106,6 @@ pub fn compile_body(tokens: &Vec<Token>,
                     expected_return_type: &str,
                     return_label: &str,
                     start_index: usize,
-                    method_symbol: &Symbol,
                     inner_namespace: &str,
                     registers: (&str, &str, &str, &str, &str),
                     symbol_table: &StaticSymbolTable,
@@ -148,7 +147,7 @@ pub fn compile_body(tokens: &Vec<Token>,
         else
         {
             println!("compile_method_body: statement found at {}", index);
-            let (code, end_index) = compile_statement(tokens, index, method_symbol, &*inner_namespace, registers, symbol_table);
+            let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
             plp.code.push_str(&*code);
             index = end_index;
             println!("compile_method_body: new index is {}", index);
@@ -290,7 +289,6 @@ pub fn compile_conditional( tokens: &Vec<Token>,
 /// @return (code, end_index)
 pub fn compile_statement(   tokens: &Vec<Token>,
                             start_index: usize,
-                            method_symbol: &Symbol,
                             current_namespace: &str,
                             registers: (&str, &str, &str, &str, &str),
                             symbol_table: &StaticSymbolTable) -> (String, usize)
