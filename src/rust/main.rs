@@ -86,6 +86,8 @@ fn main()
 
         let mut plp = PLPWriter::new();
         plp.org("0x10000000");
+        plp.equ("true", 1);
+        plp.equ("false", 0);
         plp.li("$sp", "0x10fffffc");
         plp.println();
 
