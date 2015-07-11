@@ -13,7 +13,7 @@ control	;
 mod.permission	public
 mod.access	static
 type	int
-identifier	CasualMethod
+identifier	casualMethod
 control	(
 control	)
 control	{
@@ -23,30 +23,10 @@ control	;
 control	}
 mod.permission	public
 mod.access	static
-type	int
-identifier	Sum
-control	(
-type	int
-identifier	a
-control	,
-type	int
-identifier	b
-control	)
-control	{
-action	return
-identifier	a
-operator.binary	+
-identifier	b
-control	;
-control	}
-mod.permission	public
-mod.access	static
 type	void
 identifier	main
 control	(
 identifier	String
-control	[
-control	]
 identifier	args
 control	)
 control	{
@@ -58,8 +38,22 @@ control	;
 type	int
 identifier	b
 operator.binary	=
-literal.int	3
+literal.int	2
+operator.binary	+
+identifier	casualMethod
+control	(
+control	)
 control	;
+construct.conditional	if
+control	(
+literal.boolean	true
+control	)
+control	{
+identifier	b
+operator.binary	+=
+literal.int	1
+control	;
+control	}
 type	int
 identifier	sum
 operator.binary	=
@@ -95,17 +89,8 @@ identifier	a
 operator.binary	-
 literal.int	2
 control	;
-type	int
-identifier	addConstant
-operator.binary	=
-identifier	b
-operator.binary	*
-identifier	constant
-control	;
-identifier	addConstant
-operator.binary	+=
-literal.int	2
-control	;
+comment.line	//int addConstant = b * constant;
+comment.line	//addConstant += 2;
 type	int
 identifier	multiplyImmediate
 operator.binary	=
@@ -169,20 +154,9 @@ control	)
 operator.binary	*
 literal.int	7
 control	;
-identifier	multiplyImmediate
-operator.binary	=
-identifier	multiplyImmediate
-operator.binary	<<
-literal.int	1
-control	;
+comment.line	//multiplyImmediate = multiplyImmediate << 1;
 comment.line	//multiplyImmediate++;
-type	boolean
-identifier	test
-operator.binary	=
-literal.boolean	true
-operator.binary	|
-literal.boolean	false
-control	;
+comment.line	//boolean test = true | false;
 comment.line	//CasualMethod();
 comment.line	//Sum(a, b);
 comment.line	// DO NOT LEX
@@ -192,7 +166,7 @@ comment.block	/*
 		 */
 comment.line	// /**/ Do not lex 3
 comment.block	/*
-		 * 
+		 *
 		 * // */
 comment.line	// Strings are currently unsupported
 comment.line	// String s = "/*LexAstring" + lex + "LexAstring*/ LexAstring";

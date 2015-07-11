@@ -7,6 +7,20 @@ pub struct Token<'a>
     pub value: String,
 }
 
+impl <'a> Token<'a>
+{
+    #[allow(dead_code)]
+    pub fn clone(&self) -> Token<'a>
+    {
+        Token
+        {
+            name: self.name.clone(),
+            range: self.range.clone(),
+            value: self.value.clone(),
+        }
+    }
+}
+
 pub trait Printable
 {
     fn print_to(&self, file_path: &str, console_out: bool);

@@ -5,6 +5,7 @@ authors = ["Zachary Moore <zcmoore@asu.edu>"]
 
 [dependencies]
 regex = "0.1.8"
+getopts = "0.2.11"
 
 [[bin]]
 name = "grinder"

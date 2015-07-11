@@ -10,7 +10,7 @@ pub fn get_token_types<'a>() -> Vec<(&'a str, &'a str)>
     // TODO: Read types from rules file
     let mut token_types: Vec<(&str, &str)> = Vec::new();
 
-    token_types.push(("comment.line",       	r"//[^\n|$]*"));
+    token_types.push(("comment.line",       	r"//[^\n]*"));
     token_types.push(("comment.block",      	r"/\*([^\*]|(\*[^/]))*\*/"));
     token_types.push(("control",            	r"\.|\(|\)|\{|}|\[|]|;|,"));
     token_types.push(("literal.int",        	r"(0(x|b|o|d))?[:digit:]+"));
@@ -44,13 +44,42 @@ pub fn get_token_types<'a>() -> Vec<(&'a str, &'a str)>
     token_types
 }
 
-pub fn lex_file<'a>(file_path: &str) -> Vec<Token<'a>>
+pub fn get_invalid_token_values<'a>() -> Vec<&'a str>
 {
-    let input = read_in(file_path);
-    lex_string(input)
+    // TODO: Read invalid types from rules file
+    let mut invalid_tokens: Vec<&str> = Vec::new();
+
+    invalid_tokens.push("enum");
+    invalid_tokens.push("interface");
+
+    invalid_tokens
 }
 
-pub fn lex_string<'a>(input: String) -> Vec<Token<'a>>
+pub fn get_invalid_token_types<'a>() -> Vec<&'a str>
+{
+    // TODO: Read invalid types from rules file
+    let mut invalid_types: Vec<&str> = Vec::new();
+
+    invalid_types.push("literal.null");
+    invalid_types.push("block.generics.args");
+    invalid_types.push("literal.string");
+    invalid_types.push("literal.char");
+    invalid_types.push("literal.float");
+    invalid_types.push("literal.double");
+    invalid_types.push("special.reserved");
+    invalid_types.push("construct.handles");
+    invalid_types.push("construct.switch");
+
+    invalid_types
+}
+
+pub fn lex_file<'a>(file_path: &str, debug: bool) -> Vec<Token<'a>>
+{
+    let input = read_in(file_path);
+    lex_string(input, debug)
+}
+
+pub fn lex_string<'a>(input: String, debug: bool) -> Vec<Token<'a>>
 {
     // List the first match from each matcher; the index of the match will correspond to an index in matchers
     let mut matches: Vec<MatchResult> = Vec::new();
@@ -72,10 +101,13 @@ pub fn lex_string<'a>(input: String) -> Vec<Token<'a>>
         }
 
         // print matches
-        println!("\nMatches on {}:", string);
-        for result in matches.iter()
+        if debug
         {
-            println!("\t{}\t({}, {})\t{}", result.token_name, result.start, result.end, result.valid);
+            println!("\nMatches on {}:", string);
+            for result in matches.iter()
+            {
+                println!("\t{}\t({}, {})\t{}", result.token_name, result.start, result.end, result.valid);
+            }
         }
 
         // Find the first match and add it as a token; stop when there are no tokens to be found
@@ -89,15 +121,20 @@ pub fn lex_string<'a>(input: String) -> Vec<Token<'a>>
                 let value = slice_of(&input, (start, end));
                 let token = Token{name: match_result.token_name, range: (start, end), value: value};
                 string_index = end;
-                println!("\tThe dominant token is: {} at index: {} = {} with value: {}", matches[index].token_name, index, matches[index].index, token.value);
-                println!("\tRange: ({}, {})", start, end);
+
+                if debug
+                {
+                    println!("\tThe dominant token is: {} at index: {} = {} with value: {}", matches[index].token_name, index, matches[index].index, token.value);
+                    println!("\tRange: ({}, {})", start, end);
+                }
+
                 tokens.push(token);
             }
             matches.clear();
         }
         else
         {
-            println!("no matches found");
+            if debug {println!("no matches found");}
             break;
         }
     }

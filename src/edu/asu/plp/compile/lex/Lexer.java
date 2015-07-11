@@ -5,11 +5,16 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.asu.plp.Token;
-import edu.asu.util.Strings;
 
 public class Lexer
 {
@@ -48,32 +53,81 @@ public class Lexer
 		return tokens;
 	}
 	
+	private List<Matcher> findAndSort(Collection<Matcher> matchers, int startIndex)
+	{
+		List<Matcher> matches = new ArrayList<>();
+		
+		for (Matcher matcher : matchers)
+			if (matcher.find(startIndex))
+				matches.add(matcher);
+		
+		matches.sort(new MatchSorter());
+		
+		return matches;
+	}
+	
 	private List<Token> lex(String line) throws LexException
 	{
-		ArrayList<String> strings = new ArrayList<>();
-		strings.add(line);
+		if (line.trim().length() == 0)
+			return Collections.<Token> emptyList();
 		
-		// TODO: Extract String Literals
+		Map<Matcher, Token.Type> matchers = new HashMap<>();
 		
-		for (String control : Token.Groups.CONTROL_TOKENS)
+		for (Token.Type tokenType : Token.Type.values())
 		{
-			ArrayList<String> holder = new ArrayList<>();
-			for (String string : strings)
-				holder.addAll(Strings.splitAndRetain(string, control));
-			strings = holder;
+			Pattern pattern = Pattern.compile(tokenType.regex);
+			Matcher matcher = pattern.matcher(line);
+			
+			matchers.put(matcher, tokenType);
 		}
 		
-		ArrayList<String> holder = new ArrayList<>();
-		for (String string : strings)
+		List<Matcher> matches = findAndSort(matchers.keySet(), 0);
+		ArrayList<String> tokenStrings = new ArrayList<>();
+		int index;
+		
+		while (!matches.isEmpty())
 		{
-			// Split by whitespace
-			holder.addAll(Arrays.asList(string.split("\\s")));
+			Matcher firstMatch = matches.get(0);
+			for (int i = 1; i < matches.size(); i++)
+			{
+				Matcher rival = matches.get(i);
+				if (rival.start() == firstMatch.start())
+				{
+					if (rival.end() > firstMatch.end())
+						firstMatch = rival;
+					else if (rival.end() == firstMatch.end())
+					{
+						Token.Type firstType = matchers.get(firstMatch);
+						Token.Type rivalType = matchers.get(rival);
+						
+						List<Token.Type> tokenTypes = Arrays.asList(Token.Type.values());
+						int firstPriority = tokenTypes.indexOf(firstType);
+						int rivalPriority = tokenTypes.indexOf(rivalType);
+						
+						if (firstPriority == rivalPriority)
+							throw new LexException("Simultanious Matches Found");
+						else if (firstPriority > rivalPriority)
+							firstMatch = rival;
+					}
+				}
+				else
+				{
+					break;
+				}
+			}
+			
+			String tokenString = line.substring(firstMatch.start(), firstMatch.end());
+			tokenStrings.add(tokenString);
+			index = firstMatch.end();
+			if (index >= line.length())
+				break;
+			else
+				matches = findAndSort(matchers.keySet(), index);
 		}
-		strings = holder;
 		
 		try
 		{
-			return Token.makeTokens(strings);
+			return Token.makeTokens(tokenStrings);
 		}
 		catch (LexException lexException)
 		{

@@ -1,13 +1,11 @@
 package edu.asu.plp;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import edu.asu.plp.compile.lex.LexException;
-import edu.asu.util.Strings;
 
 public class Token
 {
@@ -19,7 +17,6 @@ public class Token
 	
 	public static enum Type
 	{
-		// "\\.", "\\(", "\\)", "\\{", "\\}", "\\[", "\\]", ";"
 		CONTROL(Groups.CONTROL_TOKENS),
 		LITERAL_INT("(0(x|b|d))?(\\d)+"),
 		LITERAL_LONG("(\\d)+[lL]"),
@@ -29,11 +26,14 @@ public class Token
 		LITERAL_STRING("\"([^\"\\\\\\n\\r]|\\\\.)*\""),
 		LITERAL_BOOLEAN("true|false"),
 		LITERAL_NULL("null"),
-		CONSTRUCT_GENERICS_DEF("<[a-z A-Z]+>"),
-		OPERATOR("((\\+\\+|--|\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
+		CONSTRUCT_GENERICS_DEF("<( )*([a-zA-Z],?( )*)+( )*>"),
+		OPERATOR_UNARY("\\+\\+|--"),
+		OPERATOR_BINARY("((\\+|<<|>>|-|\\/|\\*|\\||&)=?)|="),
+		OPERATOR(OPERATOR_UNARY, OPERATOR_BINARY), // Backward Compatibility
 		COMPARATOR(">|>=|<|<=|&&|\\|\\||==|instanceof"),
 		TYPE("boolean|long|int|byte|short|char|double|float|void"),
-		MODIFIER_ACCESS("public|private|protected|static"),
+		MODIFIER_ACCESS_PERMISSIONS("public|private|protected"),
+		MODIFIER_ACCESS(MODIFIER_ACCESS_PERMISSIONS, "static"), // Backward Compatibility
 		MODIFIER_BEHAVIOUR("final|volitile|transient|synchronized|native|abstract|throws"),
 		MODIFIER_INHERITENCE("extends|implements"),
 		ACTION("return|continue|break|throw|new|assert|strictfp"),
@@ -41,7 +41,7 @@ public class Token
 		CONSTRUCT_TYPE_DEF("class|interface|enum"),
 		SPECIAL_ORGANIZATION("package"),
 		SPECIAL_RESERVED("goto|const"),
-		SPECIAL_IMPORT("import"),
+		SPECIAL_IMPORT("import( +static)?( )+([a-zA-Z\\._])+\\*?"),
 		REFERNCE("[a-zA-Z]+[a-zA-Z\\d]*"),
 		UNSUPPORTED(LITERAL_LONG, LITERAL_FLOAT, LITERAL_DOUBLE, LITERAL_CHAR,
 				LITERAL_STRING, "\\/", MODIFIER_INHERITENCE, SPECIAL_RESERVED,
@@ -107,43 +107,9 @@ public class Token
 		List<Token> tokens = new LinkedList<>();
 		
 		for (String string : strings)
-		{
-			List<Token> token = makeToken(string);
-			
-			if (token != null)
-				tokens.addAll(token);
-		}
+			tokens.add(new Token(string));
 		
 		return tokens;
-	}
-	
-	private static List<Token> makeToken(String string) throws LexException
-	{
-		if (string.trim().length() == 0)
-			return null;
-		
-		try
-		{
-			Token token = new Token(string);
-			return Collections.<Token> singletonList(token);
-		}
-		catch (LexException e)
-		{
-			if (e.getMessage().startsWith("Type not found for"))
-			{
-				String regex = Type.compoundRegex(Type.OPERATOR, Type.COMPARATOR);
-				List<String> dividedToken = Strings.splitAndRetain(string, regex);
-				
-				if (dividedToken.size() > 1)
-					return makeTokens(dividedToken);
-				else
-					throw e;
-			}
-			else
-			{
-				throw e;
-			}
-		}
 	}
 	
 	public Token(String token) throws LexException
