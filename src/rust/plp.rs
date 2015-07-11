@@ -70,6 +70,18 @@ impl PLPWriter
 		self.code.push_str(&*code);
 	}
 
+	pub fn equ(&mut self, symbol: &str, initial_value: u16)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str(".equ ");
+		code.push_str(symbol);
+		code.push_str(" ");
+		code.push_str(&*initial_value.to_string());
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
 	pub fn li(&mut self, register: &str, value: &str)
 	{
 		let mut code = self.create_indented_string();
