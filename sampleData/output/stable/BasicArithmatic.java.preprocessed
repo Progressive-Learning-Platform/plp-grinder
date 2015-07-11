@@ -40,6 +40,16 @@ identifier	casualMethod
 control	(
 control	)
 control	;
+construct.conditional	if
+control	(
+literal.boolean	true
+control	)
+control	{
+identifier	b
+operator.binary	+=
+literal.int	1
+control	;
+control	}
 type	int
 identifier	sum
 operator.binary	=

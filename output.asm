@@ -1,7 +1,9 @@
 .org 0x10000000
+.equ true 1
+.equ false 0
 li $sp, 0x10fffffc
 
-call &*main_label
+call BasicArithmatic_main
 nop
 j end
 nop
@@ -130,6 +132,36 @@ push $t3
 pop $t3
 pop $t4
 sw $t3, 0($t4)
+li $t3, true
+push $t3
+pop $t3
+push $t3
+pop $t3
+beq $t3, $0, BasicArithmatic_main_conditional0_else0
+li $t1, call_buffer
+lw $t1, 0($t1)
+push $t1
+li $t1, BasicArithmatic_main_static
+lw $t3, 4($t1)
+li $t2, 4
+addu $t4, $t1, $t2
+li $t1, call_buffer
+sw $t3, 0($t1)
+li $t2, call_buffer
+pop $t1
+sw $t1, 0($t2)
+push $t4
+li $t3, 1
+push $t3
+pop $t3
+pop $t4
+lw $t0, 0($t4)
+addu $t3, $t3, $t0
+sw $t3, 0($t4)
+j BasicArithmatic_main_conditional0_end
+nop
+BasicArithmatic_main_conditional0_else0:
+BasicArithmatic_main_conditional0_end:
 li $t1, call_buffer
 lw $t1, 0($t1)
 push $t1
