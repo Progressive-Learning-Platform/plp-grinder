@@ -11,6 +11,10 @@ public class BasicArithmatic
 	{
 		int a = 4;
 		int b = 2 + casualMethod();
+		if (true)
+		{
+			b += 1;
+		}
 		int sum = a + b;
 		int product = a*b;
 		int difference = a -b;
