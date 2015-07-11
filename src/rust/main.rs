@@ -89,7 +89,7 @@ fn main()
         plp.li("$sp", "0x10fffffc");
         plp.println();
 
-        plp.call("&*main_label");
+        plp.call(&*main_label);
         plp.j("end");
         plp.println();
 
