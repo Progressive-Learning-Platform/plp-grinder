@@ -382,7 +382,7 @@ pub fn compile_conditional( tokens: &Vec<Token>,
     // TODO: compute inner_namespace
     let result_register = registers.3;
     let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
-                                                                        index + 1,
+                                                                        index,
                                                                         &*outer_namespace,
                                                                         registers.0,
                                                                         (registers.1, registers.2),
