@@ -67,10 +67,8 @@ pub fn get_invalid_token_types<'a>() -> Vec<&'a str>
     invalid_types.push("literal.float");
     invalid_types.push("literal.double");
     invalid_types.push("special.reserved");
-    invalid_types.push("construct.conditional");
     invalid_types.push("construct.handles");
     invalid_types.push("construct.switch");
-    invalid_types.push("construct.loop");
 
     invalid_types
 }
