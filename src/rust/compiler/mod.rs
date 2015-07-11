@@ -151,6 +151,10 @@ pub fn compile_body(tokens: &Vec<Token>,
                     plp: &mut PLPWriter) -> usize
 {
     let mut index = start_index;
+    let mut nested_loop_count = 0;
+    let mut nested_conditional_count = 0;
+    let mut nested_switch_count = 0;
+
     while index < tokens.len()
     {
         let token = &tokens[index];
@@ -191,6 +195,45 @@ pub fn compile_body(tokens: &Vec<Token>,
             index = end_index;
             println!("compile_body: new index is {}", index);
         }
+        else if token.name == "construct.conditional"
+        {
+            println!("compile_body: conditional found at {}", index);
+            let mut chain_name = inner_namespace.to_string();
+            chain_name.push_str("_conditional");
+            chain_name.push_str(&*nested_conditional_count.to_string());
+            index = compile_conditional(tokens,
+                                        expected_return_type,
+                                        return_label, break_label,
+                                        continue_label, &*chain_name,
+                                        0,
+                                        index,
+                                        inner_namespace,
+                                        registers,
+                                        symbol_table,
+                                        plp);
+            println!("compile_body: new index is {}", index);
+        }
+        else if token.name == "construct.handles"
+        {
+            panic!("compile_statement: Exception handles currently unsupported");
+        }
+        else if token.name == "construct.switch"
+        {
+            panic!("compile_statement: Switch statements currently unsupported");
+        }
+        else if token.name == "construct.loop"
+        {
+            println!("compile_body: loop found at {}", index);
+            let mut loop_name = inner_namespace.to_string();
+            loop_name.push_str("_loop");
+            loop_name.push_str(&*nested_conditional_count.to_string());
+            index = compile_loop(tokens, expected_return_type, return_label, &*loop_name, index, inner_namespace, registers, symbol_table, plp);
+            println!("compile_body: new index is {}", index);
+        }
+        else if token.name == "construct.type"
+        {
+            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}: {}", token.value, token.name);
+        }
         else
         {
             println!("compile_body: statement found at {}", index);
@@ -205,6 +248,7 @@ pub fn compile_body(tokens: &Vec<Token>,
 }
 
 /// start_index should be the index of the loop token
+/// @return: index AFTER the close brace or closing symbol (e.g. after the semi-colon)
 pub fn compile_loop(tokens: &Vec<Token>,
                     expected_return_type: &str,
                     return_label: &str,
@@ -302,6 +346,7 @@ pub fn compile_loop(tokens: &Vec<Token>,
     index
 }
 
+/// @return: index AFTER the close brace
 pub fn compile_conditional( tokens: &Vec<Token>,
                             expected_return_type: &str,
                             return_label: &str,
@@ -451,27 +496,6 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         else if token.name.starts_with("literal")
         {
             panic!("compile_statement: Literal on left hand side");
-        }
-        // TODO: support structures below
-        else if token.name == "construct.conditional"
-        {
-            panic!("compile_statement: Conditionals currently unsupported");
-        }
-        else if token.name == "construct.handles"
-        {
-            panic!("compile_statement: Exception handles currently unsupported");
-        }
-        else if token.name == "construct.switch"
-        {
-            panic!("compile_statement: Switch statements currently unsupported");
-        }
-        else if token.name == "construct.loop"
-        {
-            panic!("compile_statement: Loops currently unsupported");
-        }
-        else if token.name == "construct.type"
-        {
-            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}: {}", token.value, token.name);
         }
         else if token.name == "identifier"
         {
