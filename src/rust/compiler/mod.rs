@@ -50,7 +50,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
 
     // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
-    compile_body(tokens, &*expected_return_type, &*return_label, index, &*inner_namespace, registers, symbol_table, &mut plp);
+    compile_body(tokens, &*expected_return_type, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, &mut plp);
 
     // Compile method footers (restore method state, cleanup stack, and return)
     println!("Method compiled: {}\n", inner_namespace);
@@ -59,62 +59,6 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     plp.ret();
 
     plp.code
-}
-
-/// @return index AFTER the closing brace
-pub fn compile_body(tokens: &Vec<Token>,
-                    expected_return_type: &str,
-                    return_label: &str,
-                    start_index: usize,
-                    inner_namespace: &str,
-                    registers: (&str, &str, &str, &str, &str),
-                    symbol_table: &StaticSymbolTable,
-                    plp: &mut PLPWriter) -> usize
-{
-    let mut index = start_index;
-    while index < tokens.len()
-    {
-        let token = &tokens[index];
-        println!("compile_body: compiling token | {} | {}: {}", index, token.value, token.name);
-
-        if token.value == "}"
-        {
-            // go to index AFTER ending brace
-            index += 1;
-            break;
-        }
-        else if token.value == "return"
-        {
-            println!("compile_method_body: return token found at {}", index);
-
-            let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
-                                                                                index + 1,
-                                                                                &*inner_namespace,
-                                                                                registers.0,
-                                                                                (registers.1, registers.2),
-                                                                                "$v0",
-                                                                                symbol_table);
-            plp.code.push_str(&*code);
-            if result_type != expected_return_type
-            {
-                //panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
-            }
-
-            plp.j(&*return_label);
-            index = end_index;
-            println!("compile_method_body: new index is {}", index);
-        }
-        else
-        {
-            println!("compile_method_body: statement found at {}", index);
-            let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
-            plp.code.push_str(&*code);
-            index = end_index;
-            println!("compile_method_body: new index is {}", index);
-        }
-    }
-
-    return index;
 }
 
 pub fn compile_save_method_state(   method_symbol: &Symbol,
@@ -193,50 +137,268 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
     }
 }
 
-// TODO: enable
-#[allow(dead_code)]
-pub fn compile_conditional( tokens: &Vec<Token>,
-                            start: usize,
-                            base_label_name: &str,
-                            current_namespace: &str,
-                            temp_register: &str, // indirect
-                            load_registers: (&str, &str),
-                            target_register: &str,
-                            symbols: &StaticSymbolTable)
-                            -> (String, usize)
+/// start_index is assumed to be AFTER the open brace
+/// @return index AFTER the closing brace
+pub fn compile_body(tokens: &Vec<Token>,
+                    expected_return_type: &str,
+                    return_label: &str,
+                    break_label: Option<&str>,
+                    continue_label: Option<&str>,
+                    start_index: usize,
+                    inner_namespace: &str,
+                    registers: (&str, &str, &str, &str, &str),
+                    symbol_table: &StaticSymbolTable,
+                    plp: &mut PLPWriter) -> usize
 {
-    let mut plp = PLPWriter::new();
-    let mut index = start;
-    let mut token = &tokens[index];
-
-    if token.value != "if"
+    let mut index = start_index;
+    while index < tokens.len()
     {
-        panic!("compile_conditional: Expected 'if' found {}", token.value);
+        let token = &tokens[index];
+        println!("compile_body: compiling token | {} | {}: {}", index, token.value, token.name);
+
+        if token.value == "}"
+        {
+            // go to index AFTER ending brace
+            index += 1;
+            break;
+        }
+        else if token.value == "break"
+        {
+            panic!("Unsupported token at {} | {}: {}", index, token.value, token.name);
+        }
+        else if token.value == "continue"
+        {
+            panic!("Unsupported token at {} | {}: {}", index, token.value, token.name);
+        }
+        else if token.value == "return"
+        {
+            println!("compile_body: return token found at {}", index);
+
+            let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+                                                                                index + 1,
+                                                                                &*inner_namespace,
+                                                                                registers.0,
+                                                                                (registers.1, registers.2),
+                                                                                "$v0",
+                                                                                symbol_table);
+            plp.code.push_str(&*code);
+            if result_type != expected_return_type
+            {
+                //panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
+            }
+
+            plp.j(&*return_label);
+            index = end_index;
+            println!("compile_body: new index is {}", index);
+        }
+        else
+        {
+            println!("compile_body: statement found at {}", index);
+            let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
+            plp.code.push_str(&*code);
+            index = end_index;
+            println!("compile_body: new index is {}", index);
+        }
     }
 
-    let (code, result_type, end_index) = compile_arithmetic_statement(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols);
-    if result_type != "boolean"
-    {
-        panic!("compile_conditional: Expected evaluation of boolean, found evaluation of {}", result_type);
-    }
-
-    // first index AFTER the sequence
-    index += 1;
-
-    (plp.code, index)
+    return index;
 }
 
-/// A statement includes any executable statement inside an executable body.
+/// start_index should be the index of the loop token
+pub fn compile_loop(tokens: &Vec<Token>,
+                    expected_return_type: &str,
+                    return_label: &str,
+                    loop_name: &str,
+                    start_index: usize,
+                    outer_namespace: &str,
+                    registers: (&str, &str, &str, &str, &str),
+                    symbol_table: &StaticSymbolTable,
+                    plp: &mut PLPWriter) -> usize
+{
+    // let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
+    let mut index = start_index;
+    let mut token = &tokens[index];
+
+    let continue_label = loop_name.clone();
+    let mut break_label = loop_name.to_string();
+    break_label.push_str("_break");
+
+    let result_register = registers.3;
+
+    if token.value == "do"
+    {
+        panic!("Do/while loop is currently unsupported. Stopped on token {} | {}: {}", index, token.value, token.name);
+    }
+    else if token.value == "while"
+    {
+        // Continue at condition evaluation
+        plp.label(continue_label);
+
+        // Evaluate condition
+        // TODO: compute inner_namespace
+        let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+                                                                            index + 2,
+                                                                            outer_namespace,
+                                                                            registers.0,
+                                                                            (registers.1, registers.2),
+                                                                            result_register,
+                                                                            symbol_table);
+        plp.code.push_str(&*code);
+        index = end_index;
+        token = &tokens[index];
+        plp.beq(result_register, "$0", &*break_label);
+
+        if tokens[index].value != "{"
+        {
+            println!("Unwrapped bodies are not currently supported");
+            panic!("compile_loop: Expected {{ found {} at {}", token.value, index);
+        }
+
+        index = compile_body(tokens, expected_return_type, return_label, Some(&*break_label), Some(continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
+        plp.j(continue_label);
+        plp.label(&*break_label);
+    }
+    else if token.value == "for"
+    {
+        let (code, end_index) = compile_statement(tokens, index + 2, outer_namespace, registers, symbol_table);
+        index = end_index;
+
+        // Evaluate condition
+        let (condition_code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+                                                                            index,
+                                                                            outer_namespace,
+                                                                            registers.0,
+                                                                            (registers.1, registers.2),
+                                                                            result_register,
+                                                                            symbol_table);
+        plp.code.push_str(&*condition_code);
+        index = end_index;
+        plp.beq(result_register, "$0", &*break_label);
+
+        let (increment_code, end_index) = compile_statement(tokens, index, outer_namespace, registers, symbol_table);
+        index = end_index;
+        token = &tokens[index];
+
+        if tokens[index].value != "{"
+        {
+            println!("Unwrapped bodies are not currently supported");
+            panic!("compile_loop: Expected {{ found {} at {}", token.value, index);
+        }
+
+        index = compile_body(tokens, expected_return_type, return_label, Some(&*break_label), Some(continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
+
+        // Continue at increment statement
+        plp.label(continue_label);
+        plp.code.push_str(&*increment_code);
+        plp.j(continue_label);
+
+        plp.label(&*break_label);
+    }
+    else
+    {
+        panic!("compile_loop: Unexpected token found at {} | {}: {}", index, token.value, token.name);
+    }
+
+    index
+}
+
+pub fn compile_conditional( tokens: &Vec<Token>,
+                            expected_return_type: &str,
+                            return_label: &str,
+                            break_label: Option<&str>,
+                            continue_label: Option<&str>,
+                            chain_name: &str,
+                            else_block_index: u16,
+                            start_index: usize,
+                            outer_namespace: &str,
+                            registers: (&str, &str, &str, &str, &str),
+                            symbol_table: &StaticSymbolTable,
+                            plp: &mut PLPWriter) -> usize
+{
+    // let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
+    let mut index = start_index;
+    let mut token = &tokens[index];
+
+    let mut chain_end_label = chain_name.to_string();
+    chain_end_label.push_str("_end");
+
+    let mut else_label = chain_name.to_string();
+    else_label.push_str("_else");
+    else_label.push_str(&*else_block_index.to_string());
+
+    let else_block_index = else_block_index + 1;
+
+    if token.value != "if" { panic!("compile_conditional: Expected 'if' found {}", token.value); }
+    // Continue
+    index += 1;
+    token = &tokens[index];
+
+    // Evaluate condition
+    // TODO: compute inner_namespace
+    let result_register = registers.3;
+    let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+                                                                        index + 1,
+                                                                        &*outer_namespace,
+                                                                        registers.0,
+                                                                        (registers.1, registers.2),
+                                                                        result_register,
+                                                                        symbol_table);
+    plp.code.push_str(&*code);
+    index = end_index;
+    token = &tokens[index];
+    plp.beq(result_register, "$0", &*else_label);
+
+    if token.value != "{"
+    {
+        println!("Unwrapped bodies are not currently supported");
+        panic!("compile_conditional: Expected {{ found {} at {}", token.value, index);
+    }
+
+    // TODO: compute inner_namespace
+    // Index AFTER the closing brace
+    index = compile_body(tokens, expected_return_type, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
+    plp.j(&*chain_end_label);
+    plp.label(&*else_label);
+
+    // Handle "else if" and "else"
+    token = &tokens[index];
+    if token.value == "else"
+    {
+        index += 1;
+        token = &tokens[index];
+        if token.value == "if"
+        {
+            // Recurse
+            return compile_conditional(tokens, expected_return_type, return_label, break_label, continue_label, chain_name, else_block_index, start_index, outer_namespace, registers, symbol_table, plp);
+        }
+        else if token.value == "{"
+        {
+            // TODO: compute inner_namespace
+            // Index AFTER the closing brace
+            index = compile_body(tokens, expected_return_type, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
+        }
+        else
+        {
+            println!("Unwrapped bodies are not currently supported");
+            panic!("compile_conditional: Expected {{ or 'if' found {} at {}", token.value, index);
+        }
+    }
+
+    // If there is no else block, or if the else block has no 'if' attached to it, write the end label and return
+    plp.label(&*chain_end_label);
+    index
+}
+
+/// A statement includes any executable statement inside an executable body, which cannot have its own body
 ///
 /// Specifically, this includes:
 /// * method calls
 /// * variable assignments
 /// * symbol sequences (e.g. accessed method calls and accessed variables)
+/// And excludes:
 /// * conditional statements
 /// * loops
-///
-/// This does not support:
-/// * blocks, except those of conditionals or loops
+/// * blocks
 /// * method declarations
 /// * class declarations
 ///
@@ -280,13 +442,13 @@ pub fn compile_statement(   tokens: &Vec<Token>,
             index += 1;
             break;
         }
-        else if token.name == "type" // || token.name == "identifier"
+        else if token.name == "type"
         {
             // IGNORE
             println!("compile_statement:ignoring token at {}", index);
             index += 1;
         }
-        else if token.name.starts_with("literal") // || token.name == "identifier"
+        else if token.name.starts_with("literal")
         {
             panic!("compile_statement: Literal on left hand side");
         }
