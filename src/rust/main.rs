@@ -111,9 +111,7 @@ fn main()
             let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
-
-            plp.code.push_str(&*code);
+            compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table, &mut plp);
         }
         plp.label("end");
 

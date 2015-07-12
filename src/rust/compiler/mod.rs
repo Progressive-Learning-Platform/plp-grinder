@@ -20,11 +20,11 @@ pub fn compile_method_body( tokens: &Vec<Token>,
                             method_symbol: &Symbol,
                             current_namespace: &str,
                             registers: (&str, &str, &str, &str, &str),
-                            symbol_table: &StaticSymbolTable) -> String
+                            symbol_table: &StaticSymbolTable,
+                            plp: &mut PLPWriter)
 {
     let (start_index, end_index) = range;
     let mut index: usize = start_index;
-    let mut plp = PLPWriter::new();
 
     // Validate start token
     if tokens[start_index].value != "{" { panic!("Expected '{{' received: {}", tokens[start_index].value); }
@@ -51,7 +51,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     plp.space(memory_size);
 
     plp.label(&*method_label);
-    compile_save_method_state(method_symbol, (registers.0, registers.1), &mut plp);
+    compile_save_method_state(method_symbol, (registers.0, registers.1), plp);
 
     // Get namespace of method block (the method's namespace + the method's name)
     let mut inner_namespace = String::new();
@@ -62,14 +62,14 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
     plp.annotate("Start of method body");
-    compile_body(tokens, &*expected_return_type, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, &mut plp);
+    compile_body(tokens, &*expected_return_type, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, plp);
     plp.annotate("End of method body");
     plp.annotate_newline();
 
     // Compile method footers (restore method state, cleanup stack, and return)
     println!("Method compiled: {}\n", inner_namespace);
     plp.label(&*return_label);
-    compile_restore_method_state(method_symbol, (registers.0, registers.1), &mut plp);
+    compile_restore_method_state(method_symbol, (registers.0, registers.1), plp);
     plp.ret();
 
     let mut annotation = "End of method declaration: ".to_string();
@@ -78,8 +78,6 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     annotation.push_str(" in namespace ");
     annotation.push_str(&*method_symbol.namespace);
     plp.annotate(&*annotation);
-
-    plp.code
 }
 
 pub fn compile_save_method_state(   method_symbol: &Symbol,
@@ -225,14 +223,7 @@ pub fn compile_body(tokens: &Vec<Token>,
         {
             println!("compile_body: return token found at {}", index);
 
-            let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
-                                                                                index + 1,
-                                                                                &*inner_namespace,
-                                                                                registers.0,
-                                                                                (registers.1, registers.2),
-                                                                                "$v0",
-                                                                                symbol_table);
-            plp.code.push_str(&*code);
+            let (result_type, end_index) = compile_arithmetic_statement(tokens, index + 1, &*inner_namespace, registers.0, (registers.1, registers.2), "$v0", symbol_table, plp);
             if result_type != expected_return_type
             {
                 //panic!("Expected return type ({}) but found ({})", expected_return_type, result_type);
@@ -300,9 +291,7 @@ pub fn compile_body(tokens: &Vec<Token>,
         else
         {
             println!("compile_body: statement found at {}", index);
-            let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
-            plp.code.push_str(&*code);
-            index = end_index;
+            index = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table, plp);
             println!("compile_body: new index is {}", index);
         }
     }
@@ -344,14 +333,7 @@ pub fn compile_loop(tokens: &Vec<Token>,
         // Evaluate condition
         // TODO: compute inner_namespace
         plp.annotate("Evaluate condition for while loop");
-        let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
-                                                                            index + 2,
-                                                                            outer_namespace,
-                                                                            registers.0,
-                                                                            (registers.1, registers.2),
-                                                                            result_register,
-                                                                            symbol_table);
-        plp.code.push_str(&*code);
+        let (result_type, end_index) = compile_arithmetic_statement(tokens, index + 2, outer_namespace, registers.0, (registers.1, registers.2), result_register, symbol_table, plp);
         index = end_index;
         token = &tokens[index];
         plp.annotate("If while condition is true (i.e. not 0), then perform the body");
@@ -381,30 +363,28 @@ pub fn compile_loop(tokens: &Vec<Token>,
 
         // Init statement
         plp.annotate("Initial statement of for loop");
-        let (init_code, end_index) = compile_statement(tokens, index + 2, outer_namespace, registers, symbol_table);
-        plp.code.push_str(&*init_code);
-        index = end_index;
+        index = compile_statement(tokens, index + 2, outer_namespace, registers, symbol_table, plp);
         plp.annotate_newline();
 
         // Evaluate condition
         plp.label(body_label);
         plp.annotate("Evaluate condition of for loop");
-        let (condition_code, result_type, end_index) = compile_arithmetic_statement(    tokens,
-                                                                                        index,
-                                                                                        outer_namespace,
-                                                                                        registers.0,
-                                                                                        (registers.1, registers.2),
-                                                                                        result_register,
-                                                                                        symbol_table);
-        plp.code.push_str(&*condition_code);
+        let (result_type, end_index) = compile_arithmetic_statement(tokens,
+                                                                    index,
+                                                                    outer_namespace,
+                                                                    registers.0,
+                                                                    (registers.1, registers.2),
+                                                                    result_register,
+                                                                    symbol_table,
+                                                                    plp);
         index = end_index;
         plp.annotate("If for condition is true (i.e. not 0), then perform the body");
         plp.annotate("Else, jump to the break lable, and stop looping");
         plp.beq(result_register, "$0", &*break_label);
 
         // Increment statement
-        let (increment_code, end_index) = compile_statement(tokens, index, outer_namespace, registers, symbol_table);
-        index = end_index;
+        let mut increment_statement = plp.copy();
+        index = compile_statement(tokens, index, outer_namespace, registers, symbol_table, &mut increment_statement);
         token = &tokens[index];
 
         if tokens[index].value != "{"
@@ -419,7 +399,7 @@ pub fn compile_loop(tokens: &Vec<Token>,
         // Continue at increment statement
         plp.label(&*continue_label);
         plp.annotate("Increment statement for for loop");
-        plp.code.push_str(&*increment_code);
+        plp.code.push_str(&*increment_statement.code);
         plp.j(body_label);
 
         plp.annotate("End of body of for loop");
@@ -470,14 +450,14 @@ pub fn compile_conditional( tokens: &Vec<Token>,
     // TODO: compute inner_namespace
     plp.annotate("Evaluate if condition");
     let result_register = registers.3;
-    let (code, result_type, end_index) = compile_arithmetic_statement(  tokens,
+    let (result_type, end_index) = compile_arithmetic_statement(  tokens,
                                                                         index,
                                                                         &*outer_namespace,
                                                                         registers.0,
                                                                         (registers.1, registers.2),
                                                                         result_register,
-                                                                        symbol_table);
-    plp.code.push_str(&*code);
+                                                                        symbol_table,
+                                                                        plp);
     index = end_index;
     token = &tokens[index];
     plp.beq(result_register, "$0", &*else_label);
@@ -545,15 +525,14 @@ pub fn compile_conditional( tokens: &Vec<Token>,
 ///
 /// range should start ON the open brace for the method body, and
 /// range should end ON the closing brace for the method body
-/// returns the index AFTER the end of this statement (e.g. after a semi-colon or end brace)
-/// @return (code, end_index)
+/// @return the index AFTER the end of this statement (e.g. after a semi-colon or end brace)
 pub fn compile_statement(   tokens: &Vec<Token>,
                             start_index: usize,
                             current_namespace: &str,
                             registers: (&str, &str, &str, &str, &str),
-                            symbol_table: &StaticSymbolTable) -> (String, usize)
+                            symbol_table: &StaticSymbolTable,
+                            plp: &mut PLPWriter) -> usize
 {
-    let mut plp = PLPWriter::new();
     let mut index: usize = start_index;
     let target_register = registers.3;
     let address_register = registers.4;
@@ -594,30 +573,21 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         {
             println!("compile_statement: found identifier {} | {}: {}", index, token.value, token.name);
             // TODO: determine memory location of nested access
-            let (code, new_index) = compile_symbol_sequence(tokens,
-                                                            index,
-                                                            current_namespace,
-                                                            registers.0,
-                                                            (registers.1, registers.2),
-                                                            target_register,
-                                                            Some(address_register),
-                                                            symbol_table);
-            plp.code.push_str(&*code);
-            index = new_index;
+            index = compile_symbol_sequence(tokens, index, current_namespace, registers.0, (registers.1, registers.2), target_register, Some(address_register), symbol_table, plp);
             println!("compile_statement: new index is {}", index);
         }
         else if token.value == "="
         {
             println!("compile_statement: found assignment {} | {}: {}", index, token.value, token.name);
             plp.push(address_register);
-            let (code, result_type, new_index) = compile_arithmetic_statement(  tokens,
-                                                                                index + 1,
-                                                                                current_namespace,
-                                                                                registers.0,
-                                                                                (registers.1, registers.2),
-                                                                                target_register,
-                                                                                symbol_table);
-            plp.code.push_str(&*code);
+            let (result_type, new_index) = compile_arithmetic_statement(tokens,
+                                                                        index + 1,
+                                                                        current_namespace,
+                                                                        registers.0,
+                                                                        (registers.1, registers.2),
+                                                                        target_register,
+                                                                        symbol_table,
+                                                                        plp);
             plp.pop(address_register);
             plp.sw(target_register, 0, address_register);
             index = new_index;
@@ -626,14 +596,14 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         else if token.value == "+="
         {
             plp.push(address_register);
-            let (code, result_type, new_index) = compile_arithmetic_statement(  tokens,
+            let (result_type, new_index) = compile_arithmetic_statement(  tokens,
                                                                                 index + 1,
                                                                                 current_namespace,
                                                                                 registers.0,
                                                                                 (registers.1, registers.2),
                                                                                 target_register,
-                                                                                symbol_table);
-            plp.code.push_str(&*code);
+                                                                                symbol_table,
+                                                                                plp);
             plp.pop(address_register);
             plp.lw(registers.0, 0, address_register);
             plp.addu(target_register, target_register, registers.0);
@@ -655,7 +625,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         }
     }
 
-    return (plp.code, index);
+    return index;
 }
 
 /// Write PLP code to evaluate the given symbol sequence, and load the result into a specific register
@@ -667,7 +637,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
 /// * a complex chain of the above (e.g. foo.method().valueInReturnValue.value.method())
 ///
 /// The start index should be the first symbol in the sequence
-/// @return (plp_code, the first index AFTER this symbol sequence)
+/// @return the first index AFTER this symbol sequence (e.g. a semi-colon or parenthesis)
 pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                                 start: usize,
                                 current_namespace: &str,
@@ -675,12 +645,11 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                                 load_registers: (&str, &str),
                                 target_register: &str,
                                 address_register: Option<&str>,
-                                symbols: &StaticSymbolTable)
-                                -> (String, usize)
+                                symbols: &StaticSymbolTable,
+                                plp: &mut PLPWriter) -> usize
 {
     // TODO: handle array access
 
-    let mut plp = PLPWriter::new();
     let mut index = start;
     let mut valid_address = false;
 
@@ -708,8 +677,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             {
                 println!("\tcompile_symbol_sequence: identifier represents method call");
                 // compile the method and append it directly to the compiled plp code
-                let (method_code, return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols);
-                plp.code.push_str(&*method_code);
+                let (return_type, new_index) = compile_method_call(tokens, index, current_namespace, temp_register, load_registers, symbols, plp);
                 plp.annotate("Retreive return value from method call");
                 plp.mov(target_register, "$v0");
                 index = new_index;
@@ -810,22 +778,20 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         }
     }
 
-    (plp.code, index)
+    index
 }
 
 /// The range should start at the method identifier
 /// The returned end_index will be the index AFTER the closing parenthesis
-/// @return (code, return_type, end_index)
+/// @return (return_type, end_index)
 pub fn compile_method_call( tokens: &Vec<Token>,
                             start: usize,
                             current_namespace: &str,
                             arg_register: &str,
                             load_registers: (&str, &str),
-                            symbols: &StaticSymbolTable)
-                            -> (String, String, usize)
+                            symbols: &StaticSymbolTable,
+                            plp: &mut PLPWriter) -> (String, usize)
 {
-    let mut plp = PLPWriter::new();
-
     // start at the token AFTER the open parenthesis
     let mut index = start + 2;
 
@@ -858,8 +824,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
 
             // Load argument into arg_register
             println!("\t\tcompile_method_call: outsourcing to compile_arithmetic_statement");
-            let (code, argument_type, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols);
-            plp.code.push_str(&*code);
+            let (argument_type, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols, plp);
             index = new_index;
 
             // Push argument_type to argument_types
@@ -919,11 +884,11 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     plp.annotate("End method call");
 
     //Return index AFTER the closing parenthesis
-    return (plp.code, return_type.to_string(), end_index + 1);
+    return (return_type.to_string(), end_index + 1);
 }
 
 /// Compiles one or more symbol sequences linked by zero or more operators.
-/// @return (code, result_type, end_index)
+/// @return (result_type, end_index)
 pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                start: usize,                   // used
 	                                current_namespace: &str,        // indirect
@@ -931,11 +896,9 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 	                                load_registers: (&str, &str),	// indirect
 	                                target_register: &str,			// used
 	                                symbols: &StaticSymbolTable,	// indirect
-                                    )
-	                                -> (String, String, usize)
+                                    plp: &mut PLPWriter) -> (String, usize)
 {
     // TODO: handle order of operations
-    let mut plp = PLPWriter::new();
     let mut index = start;
     let token = &tokens[index];
 
@@ -947,15 +910,14 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
     {
         // TODO: verify result type
         // Begin evaluation AFTER the parenthesis
-        let (code, result_type, end_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols);
-        plp.code.push_str(&*code);
+        let (result_type, end_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols, plp);
         plp.push(target_register);
         // Continue parsing AFTER closing parenthesis
         index = end_index + 1;
     }
     else
     {
-        index = compile_evaluation(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols, &mut plp);
+        index = compile_evaluation(tokens, index, current_namespace, temp_register, load_registers, target_register, symbols, plp);
     	plp.push(target_register);
     }
 
@@ -966,16 +928,15 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
         // PRESUMPTION: The first operand is at the top of the stack
 
         // Evaluate the second operand and store the result in target_register
-        let (code, operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols);
+        let (operand_type, new_index) = compile_arithmetic_statement(tokens, index + 1, current_namespace, temp_register, load_registers, target_register, symbols, plp);
 		index = new_index;
-		plp.code.push_str(&*code);
+        // TODO: determine return type from operand_types
 
 		// Retreive the first operand from the stack and store it in temp_register
 		plp.pop(temp_register);
 
         // Perform the operation on the first (target_register) and second operand (temp_register) and store the result in target_register
-        let code = compile_arithmetic_operation(&operator_token, (temp_register, target_register), target_register);
-		plp.code.push_str(&*code);
+        compile_arithmetic_operation(&operator_token, (temp_register, target_register), target_register, plp);
 
         // push the value to the stack, for the next operand
         plp.push(target_register);
@@ -984,8 +945,8 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
     // Load the final result into target_register
     plp.pop(target_register);
 
-    // TODO: determine real type instead of "Number"
-    return (plp.code, "Number".to_string(),index);
+    // TODO: determine actual return type instead of "Number"
+    return ("Number".to_string(),index);
 }
 
 /// Evaluates either a literal, or a sequence of symbols (variables, accessors, method calls, etc)
@@ -998,7 +959,7 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 ///
 /// This method will compile plp code directly to a PLPWriter as specified
 ///
-/// @return
+/// @return the index after the evaluation (e.g. the index OF another symbol sequence, a semi-colon, a parenthesis, etc)
 pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
                             start: usize,                   // used
                             current_namespace: &str,        // indirect-------------
@@ -1021,11 +982,8 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
     }
     else if token.name == "identifier"
     {
-        // handle identifier
-        let (access_code, new_index) = compile_symbol_sequence(tokens, start, current_namespace, temp_register, load_registers, target_register, None, symbols);
-        plp.code.push_str(&*access_code);
-
-        end_index = new_index;
+        // evaluate identifier
+        end_index = compile_symbol_sequence(tokens, start, current_namespace, temp_register, load_registers, target_register, None, symbols, plp);
     }
     else if token.value == "("
     {
@@ -1044,10 +1002,8 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
 /// The specified registers need not be unique, and may all be the same if desired
 /// This method performs only a single operation, and does not check for register validity
 /// The register arguments are assumed to be prefaced with '$'
-pub fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str), result_register: &str) -> String
+pub fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, &str), result_register: &str, plp: &mut PLPWriter)
 {
-    let mut plp = PLPWriter::new();
-
     match &*operator.value
     {
         "+" => plp.addu(result_register, operand_registers.0, operand_registers.1),
@@ -1055,6 +1011,4 @@ pub fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, 
         "*" => plp.mullo(result_register, operand_registers.0, operand_registers.1),
          _  => panic!("Unsupported operator: {}: {}", operator.name, operator.value)
     };
-
-    return plp.code;
 }
