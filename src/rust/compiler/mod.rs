@@ -48,9 +48,12 @@ pub fn compile_method_body( tokens: &Vec<Token>,
 
     // Compile method headers (save method state and setup method body)
     plp.label(&*memory_label);
+    plp.indent_level += 1;
     plp.space(memory_size);
+    plp.indent_level -= 1;
 
     plp.label(&*method_label);
+    plp.indent_level += 1;
     compile_save_method_state(method_symbol, (registers.0, registers.1), plp);
 
     // Get namespace of method block (the method's namespace + the method's name)
@@ -64,14 +67,18 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     plp.annotate("Start of method body");
     compile_body(tokens, &*expected_return_type, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, plp);
     plp.annotate("End of method body");
-    plp.annotate_newline();
 
     // Compile method footers (restore method state, cleanup stack, and return)
     println!("Method compiled: {}\n", inner_namespace);
+    plp.println();
+
+    plp.annotate("Start of method return");
     plp.label(&*return_label);
     compile_restore_method_state(method_symbol, (registers.0, registers.1), plp);
     plp.ret();
+    plp.annotate("End of method return");
 
+    plp.indent_level -= 1;
     let mut annotation = "End of method declaration: ".to_string();
     annotation.push_str(&*method_symbol.name);
     annotation.push_str(&*get_arg_signature_of(method_symbol));

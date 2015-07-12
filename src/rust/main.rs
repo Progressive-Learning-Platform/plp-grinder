@@ -95,12 +95,19 @@ fn main()
         plp.println();
 
         plp.label("call_buffer");
+        plp.indent_level += 1;
         plp.word(0);
+        plp.indent_level -= 1;
+
         plp.label("caller");
+        plp.indent_level += 1;
         plp.word(0);
+        plp.indent_level -= 1;
+
         plp.label("arg_stack");
+        plp.indent_level += 1;
         plp.word(0);
-        plp.println();
+        plp.indent_level -= 1;
         for static_method in class_structure.static_methods
         {
             let range = (static_method.0, static_method.1);
