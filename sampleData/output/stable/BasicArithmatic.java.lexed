@@ -55,120 +55,142 @@ literal.int                   ln:16               1
 control                       ln:16               ;
 control                       ln:17               }
 type                          ln:18               int
-identifier                    ln:18               sum
+identifier                    ln:18               c
 operator.binary               ln:18               =
-identifier                    ln:18               a
-operator.binary               ln:18               +
-identifier                    ln:18               b
+identifier                    ln:18               constant
 control                       ln:18               ;
-type                          ln:19               int
-identifier                    ln:19               product
-operator.binary               ln:19               =
-identifier                    ln:19               a
-operator.binary               ln:19               *
-identifier                    ln:19               b
-control                       ln:19               ;
-type                          ln:20               int
-identifier                    ln:20               difference
-operator.binary               ln:20               =
-identifier                    ln:20               a
-operator.binary               ln:20               -
-identifier                    ln:20               b
-control                       ln:20               ;
-type                          ln:21               int
-identifier                    ln:21               addImmediate
-operator.binary               ln:21               =
-identifier                    ln:21               a
-operator.binary               ln:21               +
-literal.int                   ln:21               2
+construct.conditional         ln:19               if
+control                       ln:19               (
+literal.boolean               ln:19               false
+control                       ln:19               )
+control                       ln:20               {
+identifier                    ln:21               c
+operator.binary               ln:21               +=
+literal.int                   ln:21               89
 control                       ln:21               ;
-type                          ln:22               int
-identifier                    ln:22               subImmediate
-operator.binary               ln:22               =
-identifier                    ln:22               a
-operator.binary               ln:22               -
-literal.int                   ln:22               2
-control                       ln:22               ;
-comment.line                  ln:23               //int addConstant = b * constant;
-comment.line                  ln:24               //addConstant += 2;
-type                          ln:25               int
-identifier                    ln:25               multiplyImmediate
-operator.binary               ln:25               =
-identifier                    ln:25               b
-operator.binary               ln:25               *
-literal.int                   ln:25               0x05
+control                       ln:22               }
+construct.conditional         ln:23               else
+control                       ln:24               {
+identifier                    ln:25               c
+operator.binary               ln:25               +=
+literal.int                   ln:25               1
 control                       ln:25               ;
-type                          ln:26               int
-identifier                    ln:26               parenthesis
-operator.binary               ln:26               =
-identifier                    ln:26               a
-operator.binary               ln:26               +
-control                       ln:26               (
-identifier                    ln:26               a
-operator.binary               ln:26               +
-identifier                    ln:26               b
-control                       ln:26               )
-control                       ln:26               ;
+control                       ln:26               }
 type                          ln:27               int
-identifier                    ln:27               pemdasFull
+identifier                    ln:27               sum
 operator.binary               ln:27               =
-control                       ln:27               (
 identifier                    ln:27               a
 operator.binary               ln:27               +
 identifier                    ln:27               b
-control                       ln:27               )
-operator.binary               ln:27               *
-literal.int                   ln:27               3
-operator.binary               ln:27               -
-literal.int                   ln:27               10
 control                       ln:27               ;
 type                          ln:28               int
-identifier                    ln:28               pemdasFullAlternate
+identifier                    ln:28               product
 operator.binary               ln:28               =
 identifier                    ln:28               a
-operator.binary               ln:28               +
-identifier                    ln:28               b
 operator.binary               ln:28               *
-control                       ln:28               (
-literal.int                   ln:28               3
-operator.binary               ln:28               -
-literal.int                   ln:28               10
-control                       ln:28               )
+identifier                    ln:28               b
 control                       ln:28               ;
 type                          ln:29               int
-identifier                    ln:29               multipleParenthis
+identifier                    ln:29               difference
 operator.binary               ln:29               =
-literal.int                   ln:29               1
-operator.binary               ln:29               +
-control                       ln:29               (
 identifier                    ln:29               a
-operator.binary               ln:29               +
-control                       ln:29               (
-identifier                    ln:29               b
 operator.binary               ln:29               -
-literal.int                   ln:29               5
-control                       ln:29               )
-operator.binary               ln:29               *
-literal.int                   ln:29               2
-control                       ln:29               )
-operator.binary               ln:29               *
-literal.int                   ln:29               7
+identifier                    ln:29               b
 control                       ln:29               ;
-comment.line                  ln:30               //multiplyImmediate = multiplyImmediate << 1;
-comment.line                  ln:31               //multiplyImmediate++;
-comment.line                  ln:32               //boolean test = true | false;
-comment.line                  ln:35               //CasualMethod();
-comment.line                  ln:37               //Sum(a, b);
-comment.line                  ln:38               // DO NOT LEX
-comment.block                 ln:39               /* Do not lex */
-comment.block                 ln:40               /*
+type                          ln:30               int
+identifier                    ln:30               addImmediate
+operator.binary               ln:30               =
+identifier                    ln:30               a
+operator.binary               ln:30               +
+literal.int                   ln:30               2
+control                       ln:30               ;
+type                          ln:31               int
+identifier                    ln:31               subImmediate
+operator.binary               ln:31               =
+identifier                    ln:31               a
+operator.binary               ln:31               -
+literal.int                   ln:31               2
+control                       ln:31               ;
+comment.line                  ln:32               //int addConstant = b * constant;
+comment.line                  ln:33               //addConstant += 2;
+type                          ln:34               int
+identifier                    ln:34               multiplyImmediate
+operator.binary               ln:34               =
+identifier                    ln:34               b
+operator.binary               ln:34               *
+literal.int                   ln:34               0x05
+control                       ln:34               ;
+type                          ln:35               int
+identifier                    ln:35               parenthesis
+operator.binary               ln:35               =
+identifier                    ln:35               a
+operator.binary               ln:35               +
+control                       ln:35               (
+identifier                    ln:35               a
+operator.binary               ln:35               +
+identifier                    ln:35               b
+control                       ln:35               )
+control                       ln:35               ;
+type                          ln:36               int
+identifier                    ln:36               pemdasFull
+operator.binary               ln:36               =
+control                       ln:36               (
+identifier                    ln:36               a
+operator.binary               ln:36               +
+identifier                    ln:36               b
+control                       ln:36               )
+operator.binary               ln:36               *
+literal.int                   ln:36               3
+operator.binary               ln:36               -
+literal.int                   ln:36               10
+control                       ln:36               ;
+type                          ln:37               int
+identifier                    ln:37               pemdasFullAlternate
+operator.binary               ln:37               =
+identifier                    ln:37               a
+operator.binary               ln:37               +
+identifier                    ln:37               b
+operator.binary               ln:37               *
+control                       ln:37               (
+literal.int                   ln:37               3
+operator.binary               ln:37               -
+literal.int                   ln:37               10
+control                       ln:37               )
+control                       ln:37               ;
+type                          ln:38               int
+identifier                    ln:38               multipleParenthis
+operator.binary               ln:38               =
+literal.int                   ln:38               1
+operator.binary               ln:38               +
+control                       ln:38               (
+identifier                    ln:38               a
+operator.binary               ln:38               +
+control                       ln:38               (
+identifier                    ln:38               b
+operator.binary               ln:38               -
+literal.int                   ln:38               5
+control                       ln:38               )
+operator.binary               ln:38               *
+literal.int                   ln:38               2
+control                       ln:38               )
+operator.binary               ln:38               *
+literal.int                   ln:38               7
+control                       ln:38               ;
+comment.line                  ln:39               //multiplyImmediate = multiplyImmediate << 1;
+comment.line                  ln:40               //multiplyImmediate++;
+comment.line                  ln:41               //boolean test = true | false;
+comment.line                  ln:44               //CasualMethod();
+comment.line                  ln:46               //Sum(a, b);
+comment.line                  ln:47               // DO NOT LEX
+comment.block                 ln:48               /* Do not lex */
+comment.block                 ln:49               /*
 		 * Do not lex 2
 		 */
-comment.line                  ln:43               // /**/ Do not lex 3
-comment.block                 ln:44               /*
+comment.line                  ln:52               // /**/ Do not lex 3
+comment.block                 ln:53               /*
 		 *
 		 * // */
-comment.line                  ln:47               // Strings are currently unsupported
-comment.line                  ln:48               // String s = "/*LexAstring" + lex + "LexAstring*/ LexAstring";
-control                       ln:49               }
-control                       ln:50               }
+comment.line                  ln:56               // Strings are currently unsupported
+comment.line                  ln:57               // String s = "/*LexAstring" + lex + "LexAstring*/ LexAstring";
+control                       ln:58               }
+control                       ln:59               }
