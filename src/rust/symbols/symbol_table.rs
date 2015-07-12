@@ -2,7 +2,7 @@ use symbols::*;
 use support::*;
 
 //TODO change String to Symbol
-///start, end, name, namespace
+///start, end, name, namespace, argument types (if applicable)
 pub struct MemberBlock (pub usize, pub usize, pub String, pub String, pub Option<Vec<String>>);
 
 pub struct ClassStructure
