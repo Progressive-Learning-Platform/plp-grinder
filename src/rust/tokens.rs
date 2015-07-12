@@ -5,6 +5,7 @@ pub struct Token<'a>
     pub name: &'a str,
     pub range: (usize, usize),
     pub value: String,
+    pub line_number: usize,
 }
 
 impl <'a> Token<'a>
@@ -17,6 +18,7 @@ impl <'a> Token<'a>
             name: self.name.clone(),
             range: self.range.clone(),
             value: self.value.clone(),
+            line_number: self.line_number.clone(),
         }
     }
 }
@@ -45,6 +47,8 @@ impl <'a> Printable for Vec<Token<'a>>
             lexed_token_string.push_str(token.name);
             lexed_token_string.push_str("\t");
             lexed_token_string.push_str(&*token.value);
+            lexed_token_string.push_str("    ln:");
+            lexed_token_string.push_str(&*token.line_number.to_string());
             lexed_token_string.push_str("\n");
 
             if console_out { println!("\t{}\t{:?}\t{}", token.name, token.range, token.value); }

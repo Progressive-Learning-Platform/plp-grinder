@@ -87,6 +87,7 @@ pub fn lex_string<'a>(input: String, debug: bool) -> Vec<Token<'a>>
 
     let token_types: Vec<(&str, &str)> = get_token_types();
     let matchers: Vec<Regex> = assemble_matchers(&token_types);
+    let new_line_matcher = Regex::new("\n").unwrap();
 
     let mut string_index = 0;
     while string_index < input.len()
@@ -114,12 +115,23 @@ pub fn lex_string<'a>(input: String, debug: bool) -> Vec<Token<'a>>
         let (valid, index) = find_first_match(&matches);
         if valid
         {
+            // Get line number
+            let mut line_number = 1;
+            let match_start = matches[index].start + string_index;
+            for (start, end) in new_line_matcher.find_iter(&*input)
+            {
+                if match_start < start { break; }
+
+                line_number += 1;
+            }
+
+            // Process token and update string_index
             {
                 let match_result = &matches[index];
                 let start = match_result.start + string_index;
                 let end = match_result.end + string_index;
                 let value = slice_of(&input, (start, end));
-                let token = Token{name: match_result.token_name, range: (start, end), value: value};
+                let token = Token{name: match_result.token_name, range: (start, end), value: value, line_number: line_number};
                 string_index = end;
 
                 if debug
@@ -130,6 +142,8 @@ pub fn lex_string<'a>(input: String, debug: bool) -> Vec<Token<'a>>
 
                 tokens.push(token);
             }
+
+            // Clear match results
             matches.clear();
         }
         else
