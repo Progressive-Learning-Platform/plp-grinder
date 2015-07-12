@@ -35,6 +35,9 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     let (memory_label, memory_size) = get_static_allocation(method_symbol);
     let expected_return_type = get_return_type_of(method_symbol);
 
+    // Space methods with a newline
+    plp.println();
+
     // Annotate declaration
     let mut annotation = "Method declaration: ".to_string();
     annotation.push_str(&*method_symbol.name);

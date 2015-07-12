@@ -83,7 +83,6 @@ fn main()
                 SymbolLocation::Memory(ref address) => address.label_name.clone(),
                 _ => { panic!("Main found was not a function!"); },
             };
-
         let mut plp = PLPWriter::new();
         plp.org("0x10000000");
         plp.equ("true", 1);
@@ -113,6 +112,7 @@ fn main()
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
             let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
+
             plp.code.push_str(&*code);
         }
         plp.label("end");

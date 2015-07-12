@@ -15,6 +15,7 @@ caller:
 arg_stack:
 .word 0
 
+
 BasicArithmatic_casualMethod_static:
 .space 0
 BasicArithmatic_casualMethod:
@@ -44,6 +45,7 @@ sw $t1, 0($t0)
 li $t0, BasicArithmatic_casualMethod_static
 return
 nop
+
 BasicArithmatic_main_static:
 .space 12
 BasicArithmatic_main:
