@@ -28,12 +28,23 @@ impl PLPWriter
 			}
 	}
 
+	pub fn copy(&self) -> PLPWriter
+	{
+		PLPWriter {
+			use_tabs: self.use_tabs,
+			indent_level: self.indent_level,
+			code: String::new(),
+			annotations_enabled: self.annotations_enabled,
+			mapping_enabled: self.mapping_enabled,
+			}
+	}
+
 	fn create_indented_string(&self) -> String
 	{
 		let mut string = String::new();
 		let indent = match self.use_tabs {
 				true  => "\t",
-				false => " ",
+				false => "    ",
 			};
 
 		for _ in (0..self.indent_level)
@@ -69,6 +80,14 @@ impl PLPWriter
 		if self.annotations_enabled
 		{
 			self.comment(annotation);
+		}
+	}
+
+	pub fn annotate_newline(&mut self)
+	{
+		if self.annotations_enabled
+		{
+			self.println();
 		}
 	}
 
