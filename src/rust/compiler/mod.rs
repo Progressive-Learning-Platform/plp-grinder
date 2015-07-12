@@ -263,6 +263,8 @@ pub fn compile_body(tokens: &Vec<Token>,
 
             plp.annotate("End of conditional chain");
             plp.annotate_newline();
+
+            nested_conditional_count += 1;
         }
         else if token.name == "construct.handles"
         {
@@ -270,6 +272,7 @@ pub fn compile_body(tokens: &Vec<Token>,
         }
         else if token.name == "construct.switch"
         {
+            nested_switch_count += 1;
             panic!("compile_statement: Switch statements currently unsupported");
         }
         else if token.name == "construct.loop"
@@ -291,6 +294,8 @@ pub fn compile_body(tokens: &Vec<Token>,
             annotation.push_str(" loop");
             plp.annotate(&*annotation);
             plp.annotate_newline();
+
+            nested_loop_count += 1;
         }
         else if token.name == "construct.type"
         {
