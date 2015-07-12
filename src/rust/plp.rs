@@ -9,6 +9,10 @@ pub struct PLPWriter
 
 	/// PLP output of this writer
 	pub code: String,
+
+	pub annotations_enabled: bool,
+
+	pub mapping_enabled: bool,
 }
 
 impl PLPWriter
@@ -19,6 +23,8 @@ impl PLPWriter
 			use_tabs: true,
 			indent_level: 0,
 			code: String::new(),
+			annotations_enabled: false,
+			mapping_enabled: false,
 			}
 	}
 
@@ -48,6 +54,33 @@ impl PLPWriter
 	pub fn println(&mut self)
 	{
 		self.code.push_str("\n");
+	}
+
+	pub fn map(&mut self, comment: &str)
+	{
+		if self.mapping_enabled
+		{
+			self.comment(comment);
+		}
+	}
+
+	pub fn annotate(&mut self, annotation: &str)
+	{
+		if self.annotations_enabled
+		{
+			self.comment(annotation);
+		}
+	}
+
+	pub fn comment(&mut self, comment: &str)
+	{
+		// TODO: split by "\n" to support multi-line comments
+		let mut code = self.create_indented_string();
+		code.push_str("# ");
+		code.push_str(comment);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
 	}
 
 	pub fn org(&mut self, address: &str)
