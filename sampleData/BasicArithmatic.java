@@ -15,6 +15,15 @@ public class BasicArithmatic
 		{
 			b += 1;
 		}
+		int c = constant;
+		if (false)
+		{
+			c += 89;
+		}
+		else
+		{
+			c += 1;
+		}
 		int sum = a + b;
 		int product = a*b;
 		int difference = a -b;
