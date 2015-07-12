@@ -83,7 +83,6 @@ fn main()
                 SymbolLocation::Memory(ref address) => address.label_name.clone(),
                 _ => { panic!("Main found was not a function!"); },
             };
-
         let mut plp = PLPWriter::new();
         plp.org("0x10000000");
         plp.equ("true", 1);
@@ -96,12 +95,19 @@ fn main()
         plp.println();
 
         plp.label("call_buffer");
+        plp.indent_level += 1;
         plp.word(0);
+        plp.indent_level -= 1;
+
         plp.label("caller");
+        plp.indent_level += 1;
         plp.word(0);
+        plp.indent_level -= 1;
+
         plp.label("arg_stack");
+        plp.indent_level += 1;
         plp.word(0);
-        plp.println();
+        plp.indent_level -= 1;
         for static_method in class_structure.static_methods
         {
             let range = (static_method.0, static_method.1);
@@ -112,8 +118,7 @@ fn main()
             let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            let code = compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table);
-            plp.code.push_str(&*code);
+            compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table, &mut plp);
         }
         plp.label("end");
 
