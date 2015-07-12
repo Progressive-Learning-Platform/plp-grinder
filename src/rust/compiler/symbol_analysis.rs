@@ -46,3 +46,33 @@ pub fn get_return_type_of(method_symbol: &Symbol) -> String
             }
     }
 }
+
+/// @return ([arg1] [, arg2] {, arg3..})
+pub fn get_arg_signature_of(method_symbol: &Symbol) -> String
+{
+    let types: &Vec<String> = match method_symbol.symbol_class
+    {
+        SymbolClass::Variable(_) => {
+                panic!("Expected Function found Variable");
+            },
+        SymbolClass::Function(_, ref arg_types, _, _) => arg_types,
+        SymbolClass::Structure(ref subtype) => {
+                panic!("Expected Function found {}", subtype);
+            }
+    };
+
+    let mut arg_signature = "(".to_string();
+    // Handle first arg type
+    if types.len() > 0
+    {
+        arg_signature.push_str(&*types[0]);
+        for ref arg_type in types[1..].iter()
+        {
+            arg_signature.push_str(",");
+            arg_signature.push_str(&*arg_type);
+        }
+    }
+    arg_signature.push_str(")");
+
+    arg_signature
+}
