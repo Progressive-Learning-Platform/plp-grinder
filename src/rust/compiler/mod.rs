@@ -268,12 +268,12 @@ pub fn compile_body(tokens: &Vec<Token>,
         }
         else if token.name == "construct.handles"
         {
-            panic!("compile_statement: Exception handles currently unsupported");
+            panic!("compile_body: Exception handles currently unsupported");
         }
         else if token.name == "construct.switch"
         {
             nested_switch_count += 1;
-            panic!("compile_statement: Switch statements currently unsupported");
+            panic!("compile_body: Switch statements currently unsupported");
         }
         else if token.name == "construct.loop"
         {
@@ -299,7 +299,7 @@ pub fn compile_body(tokens: &Vec<Token>,
         }
         else if token.name == "construct.type"
         {
-            panic!("compile_statement: Cannot declare class inside execution body.\n\tUnexpected token: {}: {}", token.value, token.name);
+            panic!("compile_body: Cannot declare class inside execution body.\n\tUnexpected token: {}: {}", token.value, token.name);
         }
         else
         {
