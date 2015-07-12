@@ -65,7 +65,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
     plp.annotate("Start of method body");
-    compile_body(tokens, &*expected_return_type, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, plp);
+    compile_body(tokens, &*expected_return_type, &*inner_namespace, &*return_label, None, None, index, &*inner_namespace, registers, symbol_table, plp);
     plp.annotate("End of method body");
 
     // Compile method footers (restore method state, cleanup stack, and return)
@@ -193,6 +193,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
 /// @return index AFTER the closing brace
 pub fn compile_body(tokens: &Vec<Token>,
                     expected_return_type: &str,
+                    body_name: &str,
                     return_label: &str,
                     break_label: Option<&str>,
                     continue_label: Option<&str>,
@@ -245,7 +246,7 @@ pub fn compile_body(tokens: &Vec<Token>,
             plp.annotate("Start of conditional chain");
 
             println!("compile_body: conditional found at {}", index);
-            let mut chain_name = inner_namespace.to_string();
+            let mut chain_name = body_name.to_string();
             chain_name.push_str("_conditional");
             chain_name.push_str(&*nested_conditional_count.to_string());
             index = compile_conditional(tokens,
@@ -279,9 +280,9 @@ pub fn compile_body(tokens: &Vec<Token>,
             plp.annotate(&*annotation);
 
             println!("compile_body: loop found at {}", index);
-            let mut loop_name = inner_namespace.to_string();
+            let mut loop_name = body_name.to_string();
             loop_name.push_str("_loop");
-            loop_name.push_str(&*nested_conditional_count.to_string());
+            loop_name.push_str(&*nested_loop_count.to_string());
             index = compile_loop(tokens, expected_return_type, return_label, &*loop_name, index, inner_namespace, registers, symbol_table, plp);
             println!("compile_body: new index is {}", index);
 
@@ -327,6 +328,8 @@ pub fn compile_loop(tokens: &Vec<Token>,
     break_label.push_str("_break");
 
     let result_register = registers.3;
+    let mut body_name = loop_name.to_string();
+    body_name.push_str("_nested");
 
     if token.value == "do"
     {
@@ -338,7 +341,6 @@ pub fn compile_loop(tokens: &Vec<Token>,
         plp.label(continue_label);
 
         // Evaluate condition
-        // TODO: compute inner_namespace
         plp.annotate("Evaluate condition for while loop");
         let (result_type, end_index) = compile_arithmetic_statement(tokens, index + 2, outer_namespace, registers.0, (registers.1, registers.2), result_register, symbol_table, plp);
         index = end_index;
@@ -354,7 +356,7 @@ pub fn compile_loop(tokens: &Vec<Token>,
         }
 
         plp.annotate("Start of body of while loop");
-        index = compile_body(tokens, expected_return_type, return_label, Some(&*break_label), Some(continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
+        index = compile_body(tokens, expected_return_type, &*body_name, return_label, Some(&*break_label), Some(continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
         plp.annotate("At the end of each iteration of the loop, go back to check the condition again, and continue to loop if it is true");
         plp.j(continue_label);
         plp.annotate("End of body of while loop");
@@ -401,7 +403,7 @@ pub fn compile_loop(tokens: &Vec<Token>,
         }
 
         plp.annotate("Start of body of for loop");
-        index = compile_body(tokens, expected_return_type, return_label, Some(&*break_label), Some(&*continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
+        index = compile_body(tokens, expected_return_type, &*body_name, return_label, Some(&*break_label), Some(&*continue_label), index + 1, outer_namespace, registers, symbol_table, plp);
 
         // Continue at increment statement
         plp.label(&*continue_label);
@@ -435,9 +437,12 @@ pub fn compile_conditional( tokens: &Vec<Token>,
                             symbol_table: &StaticSymbolTable,
                             plp: &mut PLPWriter) -> usize
 {
-    // let (code, end_index) = compile_statement(tokens, index, &*inner_namespace, registers, symbol_table);
     let mut index = start_index;
     let mut token = &tokens[index];
+
+    let mut body_name = chain_name.to_string();
+    body_name.push_str(&*else_block_index.to_string());
+    body_name.push_str("_nested");
 
     let mut chain_end_label = chain_name.to_string();
     chain_end_label.push_str("_end");
@@ -478,7 +483,7 @@ pub fn compile_conditional( tokens: &Vec<Token>,
     // TODO: compute inner_namespace
     // Index AFTER the closing brace
     plp.annotate("Start if body");
-    index = compile_body(tokens, expected_return_type, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
+    index = compile_body(tokens, expected_return_type, &*body_name, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
     plp.j(&*chain_end_label);
     plp.label(&*else_label);
 
@@ -496,10 +501,14 @@ pub fn compile_conditional( tokens: &Vec<Token>,
         }
         else if token.value == "{"
         {
+            let mut body_name = chain_name.to_string();
+            body_name.push_str(&*(else_block_index + 1).to_string());
+            body_name.push_str("_nested");
+
             // TODO: compute inner_namespace
             // Index AFTER the closing brace
             plp.annotate("Start else body");
-            index = compile_body(tokens, expected_return_type, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
+            index = compile_body(tokens, expected_return_type, &*body_name, return_label, break_label, continue_label, index + 1, outer_namespace, registers, symbol_table, plp);
             plp.annotate("End else body");
         }
         else
