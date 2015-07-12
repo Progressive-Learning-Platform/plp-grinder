@@ -69,6 +69,7 @@ fn main()
 
     if was_compile_successful
     {
+        // TODO: support multiple source files
         let mut tokens: Vec<Token> = lex_file(source_file, false);
         tokens.print_to(lex_output_file, false);
 
@@ -83,31 +84,76 @@ fn main()
                 SymbolLocation::Memory(ref address) => address.label_name.clone(),
                 _ => { panic!("Main found was not a function!"); },
             };
+        // TODO: get actual memory_label
+        let static_memory_label = "BasicArithmatic_static";
         let mut plp = PLPWriter::new();
+
+        // Compile static_init for class
+        let mut static_init_label = static_memory_label.to_string();
+        static_init_label.push_str("_init");
+        let mut static_init = PLPWriter::new();
+        static_init.label(&*static_init_label);
+        static_init.indent_level += 1;
+        let static_size = class_structure.static_variables.len();
+        for static_variable in class_structure.static_variables
+        {
+            let range = (static_variable.0, static_variable.1);
+            let name = static_variable.2;
+            let namespace = static_variable.3;
+
+            let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+            compile_statement(&tokens, range.0, &*namespace, registers, &symbols_table, &mut static_init);
+        }
+
+        // Program headers
         plp.org("0x10000000");
         plp.equ("true", 1);
         plp.equ("false", 0);
         plp.li("$sp", "0x10fffffc");
         plp.println();
 
+        // Program execution
+        plp.annotate("Run main, then stop the program");
+        // TODO: initialize all static blocks
+        plp.call(&*static_init_label);
         plp.call(&*main_label);
         plp.j("end");
         plp.println();
 
+        // Control memory
+        plp.annotate("--Allocate static memory for program control--");
+        plp.annotate("The call buffer is used to keep track of accessors (e.g. point.x)");
         plp.label("call_buffer");
         plp.indent_level += 1;
         plp.word(0);
         plp.indent_level -= 1;
+        plp.annotate_newline();
 
+        plp.annotate("Caller is used to keep track of the caller of a method (e.g. in 'point.clone()' the caller of clone() is 'point')");
         plp.label("caller");
         plp.indent_level += 1;
         plp.word(0);
         plp.indent_level -= 1;
+        plp.annotate_newline();
 
+        plp.annotate("Pointer to the argument stack for a method call");
         plp.label("arg_stack");
         plp.indent_level += 1;
         plp.word(0);
         plp.indent_level -= 1;
+        plp.println();
+
+        // Static class memory
+        plp.label(static_memory_label);
+        plp.indent_level += 1;
+        plp.space(static_size as u16);
+        plp.indent_level -= 1;
+
+        // TODO: write all static blocks
+        plp.println();
+        plp.code.push_str(&*static_init.code);
+
+        // Compile static methods
         for static_method in class_structure.static_methods
         {
             let range = (static_method.0, static_method.1);
@@ -115,10 +161,10 @@ fn main()
             let namespace = static_method.3;
             let argument_types = static_method.4;
 
-            let function_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
+            let method_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            compile_method_body(&tokens, range, function_symbol, &*namespace, registers, &symbols_table, &mut plp);
+            compile_method_body(&tokens, range, method_symbol, &*namespace, registers, &symbols_table, &mut plp);
         }
         plp.label("end");
 
