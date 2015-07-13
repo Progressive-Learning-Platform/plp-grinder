@@ -24,7 +24,6 @@ use plp::PLPWriter;
 
 fn main()
 {
-    let mut temp_source: String =  String::new();
     let default_source = "sampleData/BasicArithmatic.java";
     let lex_output_file = "sampleData/output/stable/BasicArithmatic.java.lexed";
     let preprocessed_output_file = "sampleData/output/stable/BasicArithmatic.java.preprocessed";
@@ -45,14 +44,15 @@ fn main()
             }
     };
 
+    let mut source_file = default_source.to_string();
     if matches.opt_present("s")
     {
         let brief = format!("Usage: grinder File [options]");
         println!("{}", opts.usage(&brief));
-        temp_source = match matches.opt_str("s")
+        source_file = match matches.opt_str("s")
         {
             Some(ref x) => x.clone(),
-            None => String::new(),
+            None => default_source.to_string(),
         };
     }
 
@@ -61,12 +61,7 @@ fn main()
         println!("Free arguments: {:?}", matches.free);
     }
 
-    if temp_source.is_empty()
-    {
-        temp_source = default_source.to_string();
-    }
-
-    let source_file = &*temp_source.clone();
+    let source_file = &*source_file.clone();
     let was_compile_successful = compile_oracle(&["javac", "-d", "output/temp/class", source_file]);
 
     if was_compile_successful
