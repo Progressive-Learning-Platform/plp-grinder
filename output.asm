@@ -150,6 +150,8 @@ BasicArithmatic_main:
 	call BasicArithmatic_casualMethod
 	nop
 	move $t3, $v0
+	li $t1, call_buffer
+	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)

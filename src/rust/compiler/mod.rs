@@ -694,7 +694,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
             let lookahead_token = &tokens[index + 1];
 
             let mut annotation = "--Evaluate the symbol {".to_string();
-            annotation.push_str(symbol.name);
+            annotation.push_str(&*token.value);
             annotation.push_str("}--");
             plp.annotate(&*annotation);
 
@@ -749,20 +749,43 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             }
                         },
                     SymbolLocation::InstancedMemory(offset) => {
+                            println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
+
                             // Use base address from call_buffer
                             plp.annotate("The symbol is a field in a class");
                             plp.annotate("Load the owner (i.e. caller) from the call_buffer");
                             plp.li(load_registers.0, "call_buffer");
-                            plp.lw(load_registers.0, offset, load_registers.0);
+                            plp.lw(load_registers.0, 0, load_registers.0);
 
                             plp.annotate("Load the value of the variable from memory");
                             plp.lw(target_register, offset, load_registers.0);
-                            println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
                         },
                     SymbolLocation::MethodArgument(offset) => {
-                            //TODO: account for method argument
                             println!("\tcompile_symbol_sequence: found {}: MethodArgument", &*token.value);
-                            panic!("compile_symbol_sequence: method arguments currently unsupported!");
+
+                            plp.annotate("The symbol is an argument from this method");
+                            plp.annotate("Load the base address of the argument stack arg_stack");
+                            plp.li(load_registers.0, "arg_stack");
+                            plp.lw(load_registers.1, 0, load_registers.0);
+
+                            plp.annotate("Load the value of the variable from the argument stack");
+                            plp.lw(target_register, offset, load_registers.1);
+
+                            match address_register
+                            {
+                                Some(register_name) =>
+                                {
+                                    plp.annotate("Save the address of the symbol so that it can be assigned later");
+                                    // Load address into address_register
+                                    plp.li(load_registers.1, &*offset.to_string());
+                                    plp.addu(register_name, load_registers.0, load_registers.1);
+                                    valid_address = true;
+                                },
+                                None    =>
+                                {
+                                    /* DO NOTHING */
+                                },
+                            }
                         },
                     SymbolLocation::Structured => {
                             // TODO: append to namespace
@@ -783,6 +806,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         }
         else if token.value == "."
         {
+            // TODO: adjust namespace
             // Access references are handled when it's children are parsed (in the if block above)
             // so skip this token
             index += 1;
