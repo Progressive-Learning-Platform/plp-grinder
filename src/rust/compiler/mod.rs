@@ -1,4 +1,4 @@
-mod symbol_analysis;
+pub mod symbol_analysis;
 
 use std::vec::Vec;
 use compiler::symbol_analysis::*;

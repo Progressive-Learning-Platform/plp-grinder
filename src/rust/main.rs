@@ -16,6 +16,7 @@ use std::vec::Vec;
 use tokens::*;
 use symbols::*;
 use symbols::symbol_table::*;
+use compiler::symbol_analysis::*;
 use lexer::*;
 use support::*;
 use files::dump;
@@ -66,6 +67,10 @@ fn main()
 
     if was_compile_successful
     {
+        let mut base_writter = PLPWriter::new();
+        base_writter.annotations_enabled = matches.opt_present("a");
+        base_writter.mapping_enabled = matches.opt_present("m");
+
         // TODO: support multiple source files
         let mut tokens: Vec<Token> = lex_file(source_file, false);
         tokens.print_to(lex_output_file, false);
@@ -75,33 +80,30 @@ fn main()
 
         let mut symbols_table: SymbolTable = SymbolTable::new();
         let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table);
+        let class_symbol = &class_structure.class_symbol;
 
         let main_symbol = symbols_table.lookup_by_name("main")[0];
         let main_label = match main_symbol.location {
                 SymbolLocation::Memory(ref address) => address.label_name.clone(),
                 _ => { panic!("Main found was not a function!"); },
             };
-        // TODO: get actual memory_label
-        let static_memory_label = "BasicArithmatic_static";
-        let mut plp = PLPWriter::new();
-        plp.annotations_enabled = matches.opt_present("a");
-        plp.mapping_enabled = matches.opt_present("m");
+
+        let mut plp = base_writter.copy();
+        let (static_memory_label, static_init_label) = get_class_labels(&class_symbol);
 
         // Compile static_init for class
-        let mut static_init_label = static_memory_label.to_string();
-        static_init_label.push_str("_init");
-        let mut static_init = plp.copy();
+        let mut static_init = base_writter.copy();
         static_init.label(&*static_init_label);
         static_init.indent_level += 1;
         let static_size = class_structure.static_variables.len();
         for static_variable in class_structure.static_variables
         {
-            let range = (static_variable.0, static_variable.1);
+            let start = static_variable.0;
             let name = static_variable.2;
             let namespace = static_variable.3;
 
             let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            compile_statement(&tokens, range.0, &*namespace, registers, &symbols_table, &mut static_init);
+            compile_statement(&tokens, start, &*namespace, registers, &symbols_table, &mut static_init);
         }
 
         let mut static_init_labels = Vec::new();
@@ -109,7 +111,7 @@ fn main()
         compile_program_header(&mut plp, &*main_label, &static_init_labels);
 
         // Static class memory
-        plp.label(static_memory_label);
+        plp.label(&*static_memory_label);
         plp.indent_level += 1;
         plp.space(static_size as u16);
         plp.indent_level -= 1;
