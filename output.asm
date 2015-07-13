@@ -3,9 +3,10 @@
 .equ false 0
 li $sp, 0x10fffffc
 
-# Run main, then stop the program
+# Initialize the static memory of all classes
 call BasicArithmatic_static_init
 nop
+# Run main, then stop the program
 call BasicArithmatic_main
 nop
 j end

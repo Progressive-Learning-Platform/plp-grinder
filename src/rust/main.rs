@@ -104,43 +104,9 @@ fn main()
             compile_statement(&tokens, range.0, &*namespace, registers, &symbols_table, &mut static_init);
         }
 
-        // Program headers
-        plp.org("0x10000000");
-        plp.equ("true", 1);
-        plp.equ("false", 0);
-        plp.li("$sp", "0x10fffffc");
-        plp.println();
-
-        // Program execution
-        plp.annotate("Run main, then stop the program");
-        // TODO: initialize all static blocks
-        plp.call(&*static_init_label);
-        plp.call(&*main_label);
-        plp.j("end");
-        plp.println();
-
-        // Control memory
-        plp.annotate("--Allocate static memory for program control--");
-        plp.annotate("The call buffer is used to keep track of accessors (e.g. point.x)");
-        plp.label("call_buffer");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.annotate_newline();
-
-        plp.annotate("Caller is used to keep track of the caller of a method (e.g. in 'point.clone()' the caller of clone() is 'point')");
-        plp.label("caller");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.annotate_newline();
-
-        plp.annotate("Pointer to the argument stack for a method call");
-        plp.label("arg_stack");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.println();
+        let mut static_init_labels = Vec::new();
+        static_init_labels.push(&*static_init_label);
+        compile_program_header(&mut plp, &*main_label, &static_init_labels);
 
         // Static class memory
         plp.label(static_memory_label);
