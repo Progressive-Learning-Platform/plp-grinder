@@ -777,8 +777,6 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 let symbol = symbols.lookup_variable(&*accessing_namespace, &*token.value).unwrap();
                 valid_address = false;
 
-                accessing_namespace = symbol.namespace.clone();
-
                 match symbol.location
                 {
                     SymbolLocation::Register(ref name) => {
@@ -812,14 +810,30 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                     SymbolLocation::InstancedMemory(offset) => {
                             println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
 
-                            // Use base address from call_buffer
-                            plp.annotate("The symbol is a field in a class");
-                            plp.annotate("Load the owner (i.e. caller) from the call_buffer");
-                            plp.li(load_registers.0, "call_buffer");
-                            plp.lw(load_registers.0, 0, load_registers.0);
+                            if accessing_namespace == namespace
+                            {
+                                // Symbol is the first in it's chain, indicating that it belongs to the method's local class
+                                // Use base address from caller
+                                plp.annotate("The symbol is a field in a class");
+                                plp.annotate("Load the caller");
+                                plp.li(load_registers.0, "caller");
+                                plp.lw(load_registers.0, 0, load_registers.0);
 
-                            plp.annotate("Load the value of the variable from memory");
-                            plp.lw(target_register, offset, load_registers.0);
+                                plp.annotate("Load the value of the variable from memory");
+                                plp.lw(target_register, offset, load_registers.0);
+                            }
+                            else
+                            {
+                                // Symbol has a prefix, indicating that it belongs to it's owners's local class
+                                // Use base address from call_buffer
+                                plp.annotate("The symbol is a field in a class");
+                                plp.annotate("Load the owner (i.e. caller) from the call_buffer");
+                                plp.li(load_registers.0, "call_buffer");
+                                plp.lw(load_registers.0, 0, load_registers.0);
+
+                                plp.annotate("Load the value of the variable from memory");
+                                plp.lw(target_register, offset, load_registers.0);
+                            }
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             println!("\tcompile_symbol_sequence: found {}: MethodArgument", &*token.value);
@@ -855,6 +869,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             println!("\tcompile_symbol_sequence: found {}: Strcutured", &*token.value);
                         },
                 };
+
+                accessing_namespace = symbol.namespace.clone();
 
                 index += 1;
             }
