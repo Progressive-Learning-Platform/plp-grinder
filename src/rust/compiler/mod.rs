@@ -653,6 +653,9 @@ pub fn compile_statement(   tokens: &Vec<Token>,
 /// * a method accessed from another symbol (e.g. foo.bar() or Foo.staticBar()), or
 /// * a complex chain of the above (e.g. foo.method().valueInReturnValue.value.method())
 ///
+/// @argument address_register: if value is Some(_) then store the address of the evaluated reference in the specified regiser.
+///                             This is useful for an evaluation on the left-hand side, as it may need to be reassigned (e.g. foo.bar = 2);
+///
 /// The start index should be the first symbol in the sequence
 /// @return the first index AFTER this symbol sequence (e.g. a semi-colon or parenthesis)
 pub fn compile_symbol_sequence( tokens: &Vec<Token>,
@@ -670,7 +673,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     let mut index = start;
     let mut valid_address = false;
 
-    // Save call buffer
+    // Save call buffer (this will be $this or $0 depending on if the scope is static)
     plp.annotate("Save call buffer");
     plp.li(load_registers.0, "call_buffer");
     plp.lw(load_registers.0, 0, load_registers.0);
@@ -683,26 +686,29 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         let token = &tokens[index];
         println!("\tcompile_symbol_sequence: processing token at {} | {}: {}", index, token.value, token.name);
 
-        // PRESUMPTION: there is a reference on the stack, unless this is the first symbol AND the scope is static, in which case $0 will be on the stack
+        // PRESUMPTION: if this is the first symbol, $this will be stored in the call_buffer, unless the scope is static, in which case $0 will be in the call_buffer
+        // PRESUMPTION: if this symbol is following an accessor (i.e. it is not the first symbol), then the previous symbol (i.e. the "caller") will be in the call_buffer
         if token.name == "identifier"
         {
             println!("\tcompile_symbol_sequence: identifier found at {}", index);
             let lookahead_token = &tokens[index + 1];
 
+            let mut annotation = "--Evaluate the symbol {".to_string();
+            annotation.push_str(symbol.name);
+            annotation.push_str("}--");
+            plp.annotate(&*annotation);
+
             // Method call
             if lookahead_token.value == "("
             {
                 println!("\tcompile_symbol_sequence: identifier represents method call");
+
                 // compile the method and append it directly to the compiled plp code
                 let (return_type, new_index) = compile_method_call(tokens, index, namespace, temp_register, load_registers, symbols, plp);
                 plp.annotate("Retreive return value from method call");
                 plp.mov(target_register, "$v0");
                 index = new_index;
                 valid_address = false;
-
-                // TODO: panic if a method call is the last symbol, and address_register is Some(_)
-                // TODO: pop previous reference from stack
-                // TODO: if next token is "." then push value to stack
             }
             // Variable read
             else
@@ -711,13 +717,17 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 println!("\tcompile_symbol_sequence: symbol lookup: {} : {}", namespace, &*token.value);
                 let symbol = symbols.lookup_variable(namespace, &*token.value).unwrap();
                 valid_address = false;
+
                 match symbol.location
                 {
                     SymbolLocation::Register(ref name) => {
+                            plp.annotate("The symbol is a variable stored in a register");
+                            plp.annotate("Load the symbol from the register");
                             plp.mov(target_register, name);
                             println!("\tcompile_symbol_sequence: found {}: Register", &*token.value);
                         },
                     SymbolLocation::Memory(ref address) => {
+                            plp.annotate("Load the symbol from memory");
                             plp.li(load_registers.0, &*address.label_name);
                             plp.lw(target_register, address.offset, load_registers.0);
                             println!("\tcompile_symbol_sequence: found {}: Memory Address", &*token.value);
@@ -726,6 +736,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             {
                                 Some(register_name) =>
                                 {
+                                    plp.annotate("Save the address of the symbol so that it can be assigned later");
                                     // Load address into address_register
                                     plp.li(load_registers.1, &*address.offset.to_string());
                                     plp.addu(register_name, load_registers.0, load_registers.1);
@@ -739,9 +750,12 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                     SymbolLocation::InstancedMemory(offset) => {
                             // Use base address from call_buffer
+                            plp.annotate("The symbol is a field in a class");
+                            plp.annotate("Load the owner (i.e. caller) from the call_buffer");
                             plp.li(load_registers.0, "call_buffer");
                             plp.lw(load_registers.0, offset, load_registers.0);
 
+                            plp.annotate("Load the value of the variable from memory");
                             plp.lw(target_register, offset, load_registers.0);
                             println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
                         },
@@ -756,12 +770,14 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                 };
 
-                // Load result into call buffer, for next token
-                plp.li(load_registers.0, "call_buffer");
-                plp.sw(target_register, 0, load_registers.0);
-
                 index += 1;
             }
+
+            // Load result into call buffer, for next token
+            plp.annotate("Load the result into the call_buffer for the next token");
+            plp.li(load_registers.0, "call_buffer");
+            plp.sw(target_register, 0, load_registers.0);
+            plp.annotate("--Symbol evaluation complete--");
 
             println!("\tcompile_symbol_sequence: new index: {}", index);
         }
@@ -778,7 +794,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         }
     }
 
-    // Restore previous call_buffer
+    // Restore previous call_buffer (restores $this or $0 if the scope is static)
     plp.annotate("Restore call buffer");
     plp.li(load_registers.1, "call_buffer");
     plp.pop(load_registers.0);
