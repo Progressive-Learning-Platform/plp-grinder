@@ -681,6 +681,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     plp.annotate("End save call buffer");
     plp.annotate_newline();
 
+    let mut accessing_namespace = namespace.to_string();
     while index < (tokens.len() - 1)
     {
         let token = &tokens[index];
@@ -704,19 +705,33 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 println!("\tcompile_symbol_sequence: identifier represents method call");
 
                 // compile the method and append it directly to the compiled plp code
-                let (return_type, new_index) = compile_method_call(tokens, index, namespace, temp_register, load_registers, symbols, plp);
+                let (return_type, new_index) = compile_method_call(tokens, index, &*accessing_namespace, namespace, temp_register, load_registers, symbols, plp);
                 plp.annotate("Retreive return value from method call");
                 plp.mov(target_register, "$v0");
                 index = new_index;
                 valid_address = false;
+
+                // update accessing_namespace to the return type's inner namespace
+                match symbols.lookup_structure(&*accessing_namespace, &*return_type)
+                {
+                    Some(return_symbol) => {
+                        accessing_namespace = return_symbol.namespace.clone();
+                        accessing_namespace.push_str("_");
+                        accessing_namespace.push_str(&*return_symbol.name);
+                    },
+                    None => { println!("compile_symbol_sequence: no match found for {} in {}", &*return_type, &*accessing_namespace); },
+                };
+
             }
             // Variable read
             else
             {
                 println!("\tcompile_symbol_sequence: identifier represents variable read");
-                println!("\tcompile_symbol_sequence: symbol lookup: {} : {}", namespace, &*token.value);
-                let symbol = symbols.lookup_variable(namespace, &*token.value).unwrap();
+                println!("\tcompile_symbol_sequence: symbol lookup: {} : {}", &*accessing_namespace, &*token.value);
+                let symbol = symbols.lookup_variable(&*accessing_namespace, &*token.value).unwrap();
                 valid_address = false;
+
+                accessing_namespace = symbol.namespace.clone();
 
                 match symbol.location
                 {
@@ -788,7 +803,9 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             }
                         },
                     SymbolLocation::Structured => {
-                            // TODO: append to namespace
+                            // Update accessing_namespace
+                            accessing_namespace.push_str("_");
+                            accessing_namespace.push_str(&*symbol.name.clone());
                             println!("\tcompile_symbol_sequence: found {}: Strcutured", &*token.value);
                         },
                 };
@@ -806,9 +823,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         }
         else if token.value == "."
         {
-            // TODO: adjust namespace
-            // Access references are handled when it's children are parsed (in the if block above)
-            // so skip this token
+            // Access references are handled when it's children are parsed (in the if block above), so skip this token
             index += 1;
             continue;
         }
@@ -843,7 +858,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 /// @return (return_type, end_index)
 pub fn compile_method_call( tokens: &Vec<Token>,
                             start: usize,
-                            current_namespace: &str,
+                            method_namespace: &str,
+                            argument_namespace: &str,
                             arg_register: &str,
                             load_registers: (&str, &str),
                             symbols: &StaticSymbolTable,
@@ -881,7 +897,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
 
             // Load argument into arg_register
             println!("\t\tcompile_method_call: outsourcing to compile_arithmetic_statement");
-            let (argument_type, new_index) = compile_arithmetic_statement(tokens, index, current_namespace, "$t9", load_registers, arg_register, symbols, plp);
+            let (argument_type, new_index) = compile_arithmetic_statement(tokens, index, argument_namespace, "$t9", load_registers, arg_register, symbols, plp);
             index = new_index;
 
             // Push argument_type to argument_types
@@ -897,14 +913,11 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     // Find nested method calls
     // Handle each argument one at a time, and push each to the stack
 
-    // TODO: determine namespace from caller and current_namespace
-    let namespace = current_namespace;
-
     let id_token = &tokens[start];
     let method_name = &*id_token.value;
 
-    println!("\t\tcompile_method_call: lookup method symbol {} | {} | {}", namespace, method_name, argument_types.len());
-    let method_symbol = symbols.lookup_function(namespace, method_name, &argument_types).unwrap();
+    println!("\t\tcompile_method_call: lookup method symbol {} | {} | {}", method_namespace, method_name, argument_types.len());
+    let method_symbol = symbols.lookup_function(method_namespace, method_name, &argument_types).unwrap();
     // TODO: determine if method is static
     // TODO: if function is non-static, push $this to stack
     let return_type = match method_symbol.symbol_class
