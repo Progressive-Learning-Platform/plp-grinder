@@ -79,7 +79,7 @@ fn main()
         tokens.print_to(preprocessed_output_file, false);
 
         let mut symbols_table: SymbolTable = SymbolTable::new();
-        let class_structure = parse_class(&tokens, 1, &mut symbols_table);
+        let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table);
 
         let main_symbol = symbols_table.lookup_by_name("main")[0];
         let main_label = match main_symbol.location {
@@ -176,19 +176,20 @@ fn main()
     }
 }
 
-fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable) -> ClassStructure
+///Start on open curly brace
+fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_class_static: bool, symbols_table: &mut SymbolTable) -> ClassStructure
 {
+    let mut class_symbol: Symbol;
     let mut class_structure: ClassStructure = ClassStructure::new();
-    let mut current_namespace: String = String::new();
+    let mut current_namespace: String = class_name.clone();
     let mut current_local_class_variables = 0;
     let mut current_static_class_variables = 0;
-
 
     println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
     let mut skip_amount = 0;
 
-    for (index, token) in tokens.iter().enumerate()
+    for (index, token) in tokens[start_index..].iter().enumerate()
     {
         if min_value != 0
         {
@@ -243,6 +244,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                     let starting_point = find_next(tokens, index, "{").unwrap() + 1;
                     min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
+                    //parse_class
                     //let temp_symbol = *symbols_table.lookup_variable(&*current_namespace, &*name);
                     class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone(), current_namespace.clone(), None));
                     min_value -= index + 1;
@@ -280,7 +282,6 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
                 //TODO account for final
                 println!("------Incoming Non-Static Class Decl!");
                 let index_after_brace = index + skip_amount + 1;
-                current_namespace = tokens[index + 1].value.clone();
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
 
                 //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
@@ -396,6 +397,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Symb
     }
     dump("symbol_table.txt", symbols_table_dump);
     println!("\n");
+    class_structure.class_symbol = Symbol {namespace: current_namespace, is_static: is_class_static, name: class_name, symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
     class_structure
 }
 

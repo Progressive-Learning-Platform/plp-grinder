@@ -8,6 +8,7 @@ pub struct MemberBlock (pub usize, pub usize, pub String, pub String, pub Option
 pub struct ClassStructure
 {
     //TODO add constructor vector
+    pub class_symbol: Symbol,
     pub static_variables: Vec<MemberBlock>,
     pub static_methods: Vec<MemberBlock>,
     pub static_classes: Vec<MemberBlock>,
@@ -23,6 +24,7 @@ impl ClassStructure
     {
         ClassStructure
         {
+            class_symbol: Symbol {namespace: String::new(), is_static: false, name: String::new(), symbol_class: SymbolClass::Structure(String::new()), location: SymbolLocation::Structured},
             static_variables: Vec::new(),
             static_methods: Vec::new(),
             static_classes: Vec::new(),
@@ -245,5 +247,10 @@ impl StaticSymbolTable for SymbolTable
 
         self.children_scopes.push(symbol);
         return true;
+    }
+
+    fn concatenate_namespace(&self, namespace: String, extension: String) -> String
+    {
+        return namespace + &extension;
     }
 }

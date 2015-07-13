@@ -29,6 +29,10 @@ pub trait StaticSymbolTable
 	/// Duplicate symbols are not allowed
 	/// TODO: support overloaded methods
 	fn add(&mut self, class: SymbolClass, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool;
+
+	///Concatenate to Strings together to get the correct namepsace
+	///@return the concatenated namespace
+	fn concatenate_namespace(&self, namespace: String, extension: String) -> String;
 }
 
 pub enum SymbolLocation
