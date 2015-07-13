@@ -147,10 +147,29 @@ impl StaticSymbolTable for SymbolTable
                     {
                         if symbol.name == name
                         {
+                            //check with starts_with
+                            //Add suffix
                             match symbol.symbol_class
                             {
-                                SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) => return Some((symbol).clone()),
-                                _ => continue,
+                                SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) =>
+                                {
+                                    if arguments.len() == argument_types.len()
+                                    {
+                                        for index in 0..arguments.len()
+                                        {
+                                            if arguments[index] != argument_types[index]
+                                            {
+                                                continue
+                                            }
+                                        }
+                                        return Some((symbol).clone())
+                                    }
+                                    else
+                                    {
+                                        continue
+                                    }
+                                }
+                                _ => {continue}
                             };
                         }
                     }
