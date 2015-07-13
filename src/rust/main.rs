@@ -16,6 +16,7 @@ use std::vec::Vec;
 use tokens::*;
 use symbols::*;
 use symbols::symbol_table::*;
+use compiler::symbol_analysis::*;
 use lexer::*;
 use support::*;
 use files::*;
@@ -24,9 +25,9 @@ use plp::PLPWriter;
 
 fn main()
 {
-    let mut temp_source: String =  String::new();
     let mut output_destination: String = String::new();
     let default_source = "sampleData/BasicArithmatic.java";
+    let mut source_file = default_source.to_string();
 
     let args: Vec<String> = env::args().collect();
 
@@ -57,10 +58,10 @@ fn main()
 
     if matches.opt_present("s")
     {
-        temp_source = match matches.opt_str("s")
+        source_file = match matches.opt_str("s")
         {
             Some(ref x) => x.clone(),
-            None => String::new(),
+            None => default_source.to_string(),
         };
     }
 
@@ -87,129 +88,95 @@ fn main()
         println!("Free arguments: {:?}", matches.free);
     }
 
-    if temp_source.is_empty()
-    {
-        temp_source = default_source.to_string();
-    }
-
     if output_destination.is_empty()
     {
         output_destination = "output/".to_string();
     }
+    let source_file = &*source_file.clone();
+    let was_compile_successful = compile_oracle(&["javac", source_file]);
 
     let mut lex_output_file = output_destination.clone();
     lex_output_file.push_str("stable/BasicArithmatic.java.lexed");
     let mut preprocessed_output_file = output_destination.clone();
     preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
 
-    let source_file = &*temp_source.clone();
-    let was_compile_successful = compile_oracle(&["javac", source_file]);
-
     if was_compile_successful
     {
-        // TODO: support multiple source files
-        let mut tokens: Vec<Token> = lex_file(source_file, false);
-        tokens.print_to(&*lex_output_file, false);
+        let mut base_writter = PLPWriter::new();
+        base_writter.annotations_enabled = matches.opt_present("a");
+        base_writter.mapping_enabled = matches.opt_present("m");
 
-        remove_meta(&mut tokens);
-        tokens.print_to(&*preprocessed_output_file, false);
-
-        let mut symbols_table: SymbolTable = SymbolTable::new();
-        let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
-
-        let main_symbol = symbols_table.lookup_by_name("main")[0];
-        let main_label = match main_symbol.location {
-                SymbolLocation::Memory(ref address) => address.label_name.clone(),
-                _ => { panic!("Main found was not a function!"); },
-            };
-        // TODO: get actual memory_label
-        let static_memory_label = "BasicArithmatic_static";
-        let mut plp = PLPWriter::new();
-        plp.annotations_enabled = matches.opt_present("a");
-        plp.mapping_enabled = matches.opt_present("m");
-
-        // Compile static_init for class
-        let mut static_init_label = static_memory_label.to_string();
-        static_init_label.push_str("_init");
-        let mut static_init = plp.copy();
-        static_init.label(&*static_init_label);
-        static_init.indent_level += 1;
-        let static_size = class_structure.static_variables.len();
-        for static_variable in class_structure.static_variables
-        {
-            let range = (static_variable.0, static_variable.1);
-            let name = static_variable.2;
-            let namespace = static_variable.3;
-
-            let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            compile_statement(&tokens, range.0, &*namespace, registers, &symbols_table, &mut static_init);
-        }
-
-        // Program headers
-        plp.org("0x10000000");
-        plp.equ("true", 1);
-        plp.equ("false", 0);
-        plp.li("$sp", "0x10fffffc");
-        plp.println();
-
-        // Program execution
-        plp.annotate("Run main, then stop the program");
-        // TODO: initialize all static blocks
-        plp.call(&*static_init_label);
-        plp.call(&*main_label);
-        plp.j("end");
-        plp.println();
-
-        // Control memory
-        plp.annotate("--Allocate static memory for program control--");
-        plp.annotate("The call buffer is used to keep track of accessors (e.g. point.x)");
-        plp.label("call_buffer");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.annotate_newline();
-
-        plp.annotate("Caller is used to keep track of the caller of a method (e.g. in 'point.clone()' the caller of clone() is 'point')");
-        plp.label("caller");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.annotate_newline();
-
-        plp.annotate("Pointer to the argument stack for a method call");
-        plp.label("arg_stack");
-        plp.indent_level += 1;
-        plp.word(0);
-        plp.indent_level -= 1;
-        plp.println();
-
-        // Static class memory
-        plp.label(static_memory_label);
-        plp.indent_level += 1;
-        plp.space(static_size as u16);
-        plp.indent_level -= 1;
-
-        // TODO: write all static blocks
-        plp.println();
-        plp.code.push_str(&*static_init.code);
-
-        // Compile static methods
-        for static_method in class_structure.static_methods
-        {
-            let range = (static_method.0, static_method.1);
-            let name = static_method.2;
-            let namespace = static_method.3;
-            let argument_types = static_method.4;
-
-            let method_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types.unwrap()).unwrap();
-
-            let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-            compile_method_body(&tokens, range, method_symbol, &*namespace, registers, &symbols_table, &mut plp);
-        }
-        plp.label("end");
-
-        dump(&*(output_destination.clone() + "output.asm"), plp.code);
+        compile(source_file, &base_writter, output_destination.clone());
     }
+}
+
+fn compile(source_file: &str, base_writter: &PLPWriter, output_destination: String)
+{
+    // TODO: support multiple source files
+    let mut tokens: Vec<Token> = lex_file(source_file, false);
+    //tokens.print_to(lex_output_file, false);
+
+    remove_meta(&mut tokens);
+    //tokens.print_to(preprocessed_output_file, false);
+
+    let mut symbols_table: SymbolTable = SymbolTable::new();
+    let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
+    let class_symbol = &class_structure.class_symbol;
+
+    let main_symbol = symbols_table.lookup_by_name("main")[0];
+    let main_label = match main_symbol.location {
+            SymbolLocation::Memory(ref address) => address.label_name.clone(),
+            _ => { panic!("Main found was not a function!"); },
+        };
+
+    let mut plp = base_writter.copy();
+    let (static_memory_label, static_init_label) = get_class_labels(&class_symbol);
+
+    // Compile static_init for class
+    let mut static_init = base_writter.copy();
+    static_init.label(&*static_init_label);
+    static_init.indent_level += 1;
+    let static_size = class_structure.static_variables.len();
+    for static_variable in class_structure.static_variables
+    {
+        let start = static_variable.0;
+        let name = static_variable.2;
+        let namespace = static_variable.3;
+
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        compile_statement(&tokens, start, &*namespace, registers, &symbols_table, &mut static_init);
+    }
+
+    let mut static_init_labels = Vec::new();
+    static_init_labels.push(&*static_init_label);
+    compile_program_header(&mut plp, &*main_label, &static_init_labels);
+
+    // Static class memory
+    plp.label(&*static_memory_label);
+    plp.indent_level += 1;
+    plp.space(static_size as u16);
+    plp.indent_level -= 1;
+
+    // TODO: write all static blocks
+    plp.println();
+    plp.code.push_str(&*static_init.code);
+
+    // Compile static methods
+    for static_method in class_structure.static_methods
+    {
+        let range = (static_method.0, static_method.1);
+        let name = static_method.2;
+        let namespace = static_method.3;
+        let argument_types = static_method.4.unwrap();
+
+        let method_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types).unwrap();
+
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        compile_method_body(&tokens, range, method_symbol, &*namespace, registers, &symbols_table, &mut plp);
+    }
+    plp.label("end");
+
+    dump(&*(output_destination.clone() + "output.asm"), plp.code);
 }
 
 ///Start on open curly brace

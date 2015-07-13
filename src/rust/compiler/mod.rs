@@ -1,4 +1,4 @@
-mod symbol_analysis;
+pub mod symbol_analysis;
 
 use std::vec::Vec;
 use compiler::symbol_analysis::*;
@@ -85,6 +85,52 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     annotation.push_str(" in namespace ");
     annotation.push_str(&*method_symbol.namespace);
     plp.annotate(&*annotation);
+}
+
+pub fn compile_program_header(plp: &mut PLPWriter, main_label: &str, static_init_labels: &Vec<&str>)
+{
+    // Program headers
+    plp.org("0x10000000");
+    plp.equ("true", 1);
+    plp.equ("false", 0);
+    plp.li("$sp", "0x10fffffc");
+    plp.println();
+
+    // Program initialization
+    plp.annotate("Initialize the static memory of all classes");
+    for static_init_label in static_init_labels
+    {
+        plp.call(static_init_label);
+    }
+
+    // Program execution
+    plp.annotate("Run main, then stop the program");
+    plp.call(main_label);
+    plp.j("end");
+    plp.println();
+
+    // Control memory
+    plp.annotate("--Allocate static memory for program control--");
+    plp.annotate("The call buffer is used to keep track of accessors (e.g. point.x)");
+    plp.label("call_buffer");
+    plp.indent_level += 1;
+    plp.word(0);
+    plp.indent_level -= 1;
+    plp.annotate_newline();
+
+    plp.annotate("Caller is used to keep track of the caller of a method (e.g. in 'point.clone()' the caller of clone() is 'point')");
+    plp.label("caller");
+    plp.indent_level += 1;
+    plp.word(0);
+    plp.indent_level -= 1;
+    plp.annotate_newline();
+
+    plp.annotate("Pointer to the argument stack for a method call");
+    plp.label("arg_stack");
+    plp.indent_level += 1;
+    plp.word(0);
+    plp.indent_level -= 1;
+    plp.println();
 }
 
 pub fn compile_save_method_state(   method_symbol: &Symbol,
@@ -731,8 +777,6 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 let symbol = symbols.lookup_variable(&*accessing_namespace, &*token.value).unwrap();
                 valid_address = false;
 
-                accessing_namespace = symbol.namespace.clone();
-
                 match symbol.location
                 {
                     SymbolLocation::Register(ref name) => {
@@ -766,14 +810,30 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                     SymbolLocation::InstancedMemory(offset) => {
                             println!("\tcompile_symbol_sequence: found {}: InstancedMemory", &*token.value);
 
-                            // Use base address from call_buffer
-                            plp.annotate("The symbol is a field in a class");
-                            plp.annotate("Load the owner (i.e. caller) from the call_buffer");
-                            plp.li(load_registers.0, "call_buffer");
-                            plp.lw(load_registers.0, 0, load_registers.0);
+                            if accessing_namespace == namespace
+                            {
+                                // Symbol is the first in it's chain, indicating that it belongs to the method's local class
+                                // Use base address from caller
+                                plp.annotate("The symbol is a field in a class");
+                                plp.annotate("Load the caller");
+                                plp.li(load_registers.0, "caller");
+                                plp.lw(load_registers.0, 0, load_registers.0);
 
-                            plp.annotate("Load the value of the variable from memory");
-                            plp.lw(target_register, offset, load_registers.0);
+                                plp.annotate("Load the value of the variable from memory");
+                                plp.lw(target_register, offset, load_registers.0);
+                            }
+                            else
+                            {
+                                // Symbol has a prefix, indicating that it belongs to it's owners's local class
+                                // Use base address from call_buffer
+                                plp.annotate("The symbol is a field in a class");
+                                plp.annotate("Load the owner (i.e. caller) from the call_buffer");
+                                plp.li(load_registers.0, "call_buffer");
+                                plp.lw(load_registers.0, 0, load_registers.0);
+
+                                plp.annotate("Load the value of the variable from memory");
+                                plp.lw(target_register, offset, load_registers.0);
+                            }
                         },
                     SymbolLocation::MethodArgument(offset) => {
                             println!("\tcompile_symbol_sequence: found {}: MethodArgument", &*token.value);
@@ -809,6 +869,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             println!("\tcompile_symbol_sequence: found {}: Strcutured", &*token.value);
                         },
                 };
+
+                accessing_namespace = symbol.namespace.clone();
 
                 index += 1;
             }

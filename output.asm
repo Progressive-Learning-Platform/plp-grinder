@@ -3,9 +3,10 @@
 .equ false 0
 li $sp, 0x10fffffc
 
-# Run main, then stop the program
-call BasicArithmatic_static_init
+# Initialize the static memory of all classes
+call BasicArithmatic_BasicArithmatic_static_init
 nop
+# Run main, then stop the program
 call BasicArithmatic_main
 nop
 j end
@@ -24,10 +25,10 @@ caller:
 arg_stack:
 	.word 0
 
-BasicArithmatic_static:
+BasicArithmatic_BasicArithmatic_static:
 	.space 1
 
-BasicArithmatic_static_init:
+BasicArithmatic_BasicArithmatic_static_init:
 	# Save call buffer
 	li $t1, call_buffer
 	lw $t1, 0($t1)
