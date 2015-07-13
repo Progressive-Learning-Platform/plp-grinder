@@ -18,23 +18,26 @@ use symbols::*;
 use symbols::symbol_table::*;
 use lexer::*;
 use support::*;
-use files::dump;
+use files::*;
 use compiler::*;
 use plp::PLPWriter;
 
 fn main()
 {
     let mut temp_source: String =  String::new();
+    let mut output_destination: String = String::new();
     let default_source = "sampleData/BasicArithmatic.java";
-    let lex_output_file = "sampleData/output/stable/BasicArithmatic.java.lexed";
-    let preprocessed_output_file = "sampleData/output/stable/BasicArithmatic.java.preprocessed";
 
     let args: Vec<String> = env::args().collect();
 
     let mut opts = getopts::Options::new();
-    opts.optopt("s", "src", "Set input file name", "NAME");
+    opts.optopt("s", "src", "Set input file path", "PATH");
+    opts.optopt("d", "dest", "Sets root output directory of all files written to", "PATH");
+    opts.optopt("i", "source_folder", "Sets root input directory of all source files to read", "PATH");
     opts.optflag("a", "annotate", "Enables annotation of output source file");
     opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
+    opts.optflag("h", "help", "Prints usage of flags");
+
 
     let matches = match opts.parse(&args[1..])
     {
@@ -45,13 +48,36 @@ fn main()
             }
     };
 
+    if matches.opt_present("h")
+    {
+        let brief = format!("Usage: {} [options]", args[0]);
+        println!("{}", opts.usage(&brief));
+        return;
+    }
+
     if matches.opt_present("s")
     {
-        let brief = format!("Usage: grinder File [options]");
-        println!("{}", opts.usage(&brief));
         temp_source = match matches.opt_str("s")
         {
             Some(ref x) => x.clone(),
+            None => String::new(),
+        };
+    }
+
+    if matches.opt_present("d")
+    {
+        output_destination = match matches.opt_str("d")
+        {
+            Some(ref x) => x.clone() + "/",
+            None => String::new(),
+        };
+    }
+
+    if matches.opt_present("i")
+    {
+        output_destination = match matches.opt_str("d")
+        {
+            Some(ref x) => x.clone() + "/",
             None => String::new(),
         };
     }
@@ -66,20 +92,30 @@ fn main()
         temp_source = default_source.to_string();
     }
 
+    if output_destination.is_empty()
+    {
+        output_destination = "output/".to_string();
+    }
+
+    let mut lex_output_file = output_destination.clone();
+    lex_output_file.push_str("stable/BasicArithmatic.java.lexed");
+    let mut preprocessed_output_file = output_destination.clone();
+    preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
+
     let source_file = &*temp_source.clone();
-    let was_compile_successful = compile_oracle(&["javac", "-d", "output/temp/class", source_file]);
+    let was_compile_successful = compile_oracle(&["javac", source_file]);
 
     if was_compile_successful
     {
         // TODO: support multiple source files
         let mut tokens: Vec<Token> = lex_file(source_file, false);
-        tokens.print_to(lex_output_file, false);
+        tokens.print_to(&*lex_output_file, false);
 
         remove_meta(&mut tokens);
-        tokens.print_to(preprocessed_output_file, false);
+        tokens.print_to(&*preprocessed_output_file, false);
 
         let mut symbols_table: SymbolTable = SymbolTable::new();
-        let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table);
+        let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
 
         let main_symbol = symbols_table.lookup_by_name("main")[0];
         let main_label = match main_symbol.location {
@@ -172,12 +208,12 @@ fn main()
         }
         plp.label("end");
 
-        dump("output.asm", plp.code);
+        dump(&*(output_destination.clone() + "output.asm"), plp.code);
     }
 }
 
 ///Start on open curly brace
-fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_class_static: bool, symbols_table: &mut SymbolTable) -> ClassStructure
+fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_class_static: bool, symbols_table: &mut SymbolTable, output_destination: String) -> ClassStructure
 {
     let mut class_symbol: Symbol;
     let mut class_structure: ClassStructure = ClassStructure::new();
@@ -395,7 +431,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
         symbols_table_dump.push_str(&*offset.to_string());
         symbols_table_dump.push_str("\n");
     }
-    dump("symbol_table.txt", symbols_table_dump);
+    dump(&*(output_destination + "symbol_table.txt"), symbols_table_dump);
     println!("\n");
     class_structure.class_symbol = Symbol {namespace: current_namespace, is_static: is_class_static, name: class_name, symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
     class_structure
@@ -628,6 +664,7 @@ pub fn compile_oracle(args: &[&str]) -> bool
     if was_compile_successful
     {
         println!("Compile Successful!");
+        delete_file(&*args[args.len() - 1].replace(".java", ".class"));
     }
     else
     {
