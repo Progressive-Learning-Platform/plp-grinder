@@ -33,6 +33,8 @@ fn main()
 
     let mut opts = getopts::Options::new();
     opts.optopt("s", "src", "Set input file name", "NAME");
+    opts.optflag("a", "annotate", "Enables annotation of output source file");
+    opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
 
     let matches = match opts.parse(&args[1..])
     {
@@ -87,11 +89,13 @@ fn main()
         // TODO: get actual memory_label
         let static_memory_label = "BasicArithmatic_static";
         let mut plp = PLPWriter::new();
+        plp.annotations_enabled = matches.opt_present("a");
+        plp.mapping_enabled = matches.opt_present("m");
 
         // Compile static_init for class
         let mut static_init_label = static_memory_label.to_string();
         static_init_label.push_str("_init");
-        let mut static_init = PLPWriter::new();
+        let mut static_init = plp.copy();
         static_init.label(&*static_init_label);
         static_init.indent_level += 1;
         let static_size = class_structure.static_variables.len();
