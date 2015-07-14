@@ -259,11 +259,19 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
 ///Start on open curly brace
 fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, namespace: String, is_class_static: bool, symbols_table: &mut SymbolTable, output_directory: String) -> ClassStructure
 {
-    let mut class_symbol: Symbol;
     let mut class_structure: ClassStructure = ClassStructure::new();
-    let mut current_namespace: String = class_name.clone();
+    let mut current_namespace: String = String::new();
+    if !namespace.is_empty()
+    {
+        current_namespace.push_str(&*namespace.clone());
+        current_namespace.push_str(".");
+    }
+    current_namespace.push_str(&*class_name.clone());
+
     let mut current_local_class_variables = 0;
     let mut current_static_class_variables = 0;
+
+    class_structure.class_symbol = Symbol {namespace: namespace.clone(), is_static: is_class_static, name: class_name.clone(), symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
 
     println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
@@ -318,23 +326,12 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             {
                 if tokens[tokens_index + skip_amount].name.starts_with("control")
                 {
-                    //TODO add symbol to table
                     println!("------Incoming Static Class Decl!");
                     let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                     min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                    let mut new_namespace: String = String::new();
+                    class_structure.static_classes.push(parse_class(tokens, starting_point, tokens[tokens_index + 2].value.clone(), current_namespace.clone(), true, symbols_table, output_directory.clone()));
 
-                    if !current_namespace.is_empty()
-                    {
-                        new_namespace.push_str(&*current_namespace);
-                        new_namespace.push_str(".");
-                    }
-                    new_namespace.push_str(&*tokens[tokens_index + 2].value.clone());
-
-
-                    class_structure.static_classes.push(parse_class(tokens, starting_point, tokens[tokens_index + 2].value.clone(), new_namespace.clone(), true, symbols_table, output_directory.clone()));
-                    //let temp_symbol = *symbols_table.lookup_variable(&*current_namespace, &*name);
                     min_value -= tokens_index + 1;
                 }
                 else
@@ -365,24 +362,11 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             skip_amount = 2;
             if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
-                //TODO add symbol to table
                 println!("------Incoming Non-Static Class Decl!");
                 let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                let mut new_namespace: String = String::new();
-
-                if !current_namespace.is_empty()
-                {
-                    new_namespace.push_str(&*current_namespace);
-                    new_namespace.push_str(".");
-                }
-                new_namespace.push_str(&*tokens[tokens_index + 1].value.clone());
-
-
-                class_structure.non_static_classes.push(parse_class(tokens, starting_point, tokens[tokens_index + 1].value.clone(), new_namespace.clone(), false, symbols_table, output_directory.clone()));
-
-                //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
+                class_structure.non_static_classes.push(parse_class(tokens, starting_point, tokens[tokens_index + 1].value.clone(), current_namespace.clone(), false, symbols_table, output_directory.clone()));
 
                 min_value -= tokens_index + 1;
             }
@@ -425,7 +409,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
         println!("\tIndex: {} | Token -> {} : {}", tokens_index, token.value, token.name );
         //deal with parameters
     }
-    println!("\n<                 Class Overview                  >");
+    println!("\n\n=============================================================");
+    println!("<                 {} Overview                  >\n", class_name);
+    println!("<                 Class Structure Overview                  >");
+    println!("Class Symbol: name {}, namespace {}, is_static {}\n", class_structure.class_symbol.name, class_structure.class_symbol.namespace, class_structure.class_symbol.is_static);
     println!("<---------------- Static Variables --------------->");
     for member_block in class_structure.static_variables.iter()
     {
@@ -465,54 +452,84 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
 
     let mut symbols_table_dump: String = String::new();
 
-    println!("\n<                    Overview                     >");
+    println!("<                    Symbol Table Overview                     >");
     for symbol in symbols_table.children_scopes.iter()
     {
-        let mut offset_string: String = String::new();
+        let mut location_and_class: String = String::new();
         match symbol.location
             {
                 SymbolLocation::Memory(ref memory_address) =>
                 {
-                    offset_string.push_str("Memory(");
-                    offset_string.push_str(&*memory_address.offset.to_string());
-                    offset_string.push_str(")");
+                    location_and_class.push_str("Memory(");
+                    location_and_class.push_str("Label_name: ");
+                    location_and_class.push_str(&*memory_address.label_name.clone());
+                    location_and_class.push_str("/");
+                    location_and_class.push_str("Offset: ");
+                    location_and_class.push_str(&*memory_address.offset.to_string());
+                    location_and_class.push_str(")");
                 },
                 SymbolLocation::MethodArgument(offset) =>
                 {
-                    offset_string.push_str("MethodArgument(");
-                    offset_string.push_str(&*offset.to_string());
-                    offset_string.push_str(")");
+                    location_and_class.push_str("MethodArgument(");
+                    location_and_class.push_str(&*offset.to_string());
+                    location_and_class.push_str(")");
                 },
                 SymbolLocation::InstancedMemory(offset) =>
                 {
-                    offset_string.push_str("InstancedMemory(");
-                    offset_string.push_str(&*offset.to_string());
-                    offset_string.push_str(")");
+                    location_and_class.push_str("InstancedMemory(");
+                    location_and_class.push_str(&*offset.to_string());
+                    location_and_class.push_str(")");
+                },
+                SymbolLocation::Structured =>
+                {
+                    location_and_class.push_str("SymbolLocation::Structured");
                 },
                 _ =>
                 {
-                    offset_string.push_str("No match on location");
+                    location_and_class.push_str("No match on location");
                 },
             }
-        let mut label_name_string = match symbol.location
+        location_and_class.push_str(" | ");
+        match symbol.symbol_class
             {
-                SymbolLocation::Memory(ref memory_address) => memory_address.label_name.clone(),
-                _ => String::new(),
+                SymbolClass::Variable(ref variable_type) =>
+                {
+                    location_and_class.push_str("Class::Variable(");
+                    location_and_class.push_str(&*variable_type.clone());
+                    location_and_class.push_str(")");
+                },
+                SymbolClass::Function(_, _, _, _) =>
+                {
+                    location_and_class.push_str("Class::Function(");
+                    //location_and_class.push_str(&*memory_address.offset.to_string());
+                    location_and_class.push_str(")");
+                },
+                SymbolClass::Structure(ref structure_type) =>
+                {
+                    location_and_class.push_str("Class::Structure(");
+                    location_and_class.push_str(&*structure_type.clone());
+                    location_and_class.push_str(")");
+                }
             };
-        println!("SYMBOL: {}/{}/{}/{}", symbol.name, label_name_string, symbol.namespace, offset_string);
-        let string: String = symbol.name.clone();
-        symbols_table_dump.push_str(&*string);
-        symbols_table_dump.push_str("/");
-        symbols_table_dump.push_str(&*label_name_string);
-        symbols_table_dump.push_str("/");
-        symbols_table_dump.push_str(&*symbol.namespace);
-        symbols_table_dump.push_str("/");
-        symbols_table_dump.push_str(&*offset_string);
+        let mut formatted_symbol: String = String::new();
+        formatted_symbol.push_str("name: ");
+        formatted_symbol.push_str(&*symbol.name.clone());
+        formatted_symbol.push_str(" | ");
+        formatted_symbol.push_str("namespace: ");
+        formatted_symbol.push_str(&*symbol.namespace.clone());
+        formatted_symbol.push_str(" | ");
+        formatted_symbol.push_str(&*location_and_class.clone());
+
+        println!("{}", formatted_symbol.clone());
+        let symbol_name: String = symbol.name.clone();
+        symbols_table_dump.push_str(&*formatted_symbol.clone());
         symbols_table_dump.push_str("\n");
     }
     dump(&*(output_directory + "symbol_table.txt"), symbols_table_dump);
     println!("\n");
-    class_structure.class_symbol = Symbol {namespace: namespace, is_static: is_class_static, name: class_name, symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
+
+    //TODO add class to symbols table
+    //symbols_table.add();
     class_structure
 }
 
