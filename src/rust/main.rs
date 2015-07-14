@@ -27,9 +27,6 @@ fn main()
 {
     let default_output_directory = "output/";
     let default_source = "sampleData/BasicArithmatic.java";
-    let mut source_file = default_source.to_string();
-    let mut input_directory = String::new();
-    let mut output_directory = default_output_directory.to_string();
 
     let mut opts = getopts::Options::new();
     opts.optopt("s", "src", "Set input file path", "PATH");
@@ -56,32 +53,23 @@ fn main()
         return;
     }
 
-    if matches.opt_present("s")
+    let mut source_file = match matches.opt_str("s")
     {
-        source_file = match matches.opt_str("s")
-        {
-            Some(ref x) => x.clone(),
-            None => default_source.to_string(),
-        };
-    }
+        Some(ref file_path) => file_path.clone(),
+        None => default_source.to_string(),
+    };
 
-    if matches.opt_present("d")
+    let mut output_directory = match matches.opt_str("d")
     {
-        output_directory = match matches.opt_str("d")
-        {
-            Some(ref x) => x.clone() + "/",
-            None => default_output_directory.to_string(),
-        };
-    }
+        Some(ref directory_path) => directory_path.clone() + "/",
+        None => default_output_directory.to_string(),
+    };
 
-    if matches.opt_present("i")
+    let mut input_directory = match matches.opt_str("i")
     {
-        input_directory = match matches.opt_str("i")
-        {
-            Some(ref x) => x.clone() + "/",
-            None => String::new(),
-        };
-    }
+        Some(ref directory_path) => directory_path.clone() + "/",
+        None => String::new(),
+    };
 
     //TODO match options
     if !matches.free.is_empty() {
