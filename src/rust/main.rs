@@ -25,11 +25,10 @@ use plp::PLPWriter;
 
 fn main()
 {
-    let mut output_destination: String = String::new();
+    let default_output_directory = "output/";
     let default_source = "sampleData/BasicArithmatic.java";
     let mut source_file = default_source.to_string();
-
-    let args: Vec<String> = env::args().collect();
+    let mut output_directory = default_output_directory.to_string();
 
     let mut opts = getopts::Options::new();
     opts.optopt("s", "src", "Set input file path", "PATH");
@@ -39,7 +38,7 @@ fn main()
     opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
     opts.optflag("h", "help", "Prints usage of flags");
 
-
+    let args: Vec<String> = env::args().collect();
     let matches = match opts.parse(&args[1..])
     {
         Ok(m) => m,
@@ -67,19 +66,19 @@ fn main()
 
     if matches.opt_present("d")
     {
-        output_destination = match matches.opt_str("d")
+        output_directory = match matches.opt_str("d")
         {
             Some(ref x) => x.clone() + "/",
-            None => String::new(),
+            None => default_output_directory.to_string(),
         };
     }
 
     if matches.opt_present("i")
     {
-        output_destination = match matches.opt_str("d")
+        output_directory = match matches.opt_str("d")
         {
             Some(ref x) => x.clone() + "/",
-            None => String::new(),
+            None => default_output_directory.to_string(),
         };
     }
 
@@ -88,16 +87,12 @@ fn main()
         println!("Free arguments: {:?}", matches.free);
     }
 
-    if output_destination.is_empty()
-    {
-        output_destination = "output/".to_string();
-    }
     let source_file = &*source_file.clone();
     let was_compile_successful = compile_oracle(&["javac", source_file]);
 
-    let mut lex_output_file = output_destination.clone();
+    let mut lex_output_file = output_directory.clone();
     lex_output_file.push_str("stable/BasicArithmatic.java.lexed");
-    let mut preprocessed_output_file = output_destination.clone();
+    let mut preprocessed_output_file = output_directory.clone();
     preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
 
     let mut source_files: Vec<&str> = Vec::new();
@@ -117,7 +112,7 @@ fn main()
         for source_file in source_files
         {
             let tokens = lex(source_file);
-            let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
+            let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_directory.clone());
 
             structures.push((tokens, class_structure));
         }
@@ -129,7 +124,7 @@ fn main()
             let ref class_structure = structure.1;
 
             let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
-            dump(&*(output_destination.clone() + "output.asm"), code);
+            dump(&*(output_directory.clone() + "output.asm"), code);
             static_init_labels.push(static_init_label.clone());
         }
 
@@ -143,7 +138,7 @@ fn main()
         };
 
         compile_program_header(&mut plp, &*main_label, &static_init_labels);
-        dump(&*(output_destination.clone() + "output_start.asm"), plp.code.clone());
+        dump(&*(output_directory.clone() + "output_start.asm"), plp.code.clone());
     }
 }
 
@@ -255,7 +250,7 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
 }
 
 ///Start on open curly brace
-fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_class_static: bool, symbols_table: &mut SymbolTable, output_destination: String) -> ClassStructure
+fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_class_static: bool, symbols_table: &mut SymbolTable, output_directory: String) -> ClassStructure
 {
     let mut class_symbol: Symbol;
     let mut class_structure: ClassStructure = ClassStructure::new();
@@ -473,7 +468,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
         symbols_table_dump.push_str(&*offset.to_string());
         symbols_table_dump.push_str("\n");
     }
-    dump(&*(output_destination + "symbol_table.txt"), symbols_table_dump);
+    dump(&*(output_directory + "symbol_table.txt"), symbols_table_dump);
     println!("\n");
     class_structure.class_symbol = Symbol {namespace: current_namespace, is_static: is_class_static, name: class_name, symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
     class_structure
