@@ -11,10 +11,12 @@ pub struct ClassStructure
     pub class_symbol: Symbol,
     pub static_variables: Vec<MemberBlock>,
     pub static_methods: Vec<MemberBlock>,
+    // TODO make this a Vec of ClassStructure
     pub static_classes: Vec<MemberBlock>,
 
     pub non_static_variables: Vec<MemberBlock>,
     pub non_static_methods: Vec<MemberBlock>,
+    // TODO make this a Vec of ClassStructure
     pub non_static_classes: Vec<MemberBlock>,
 }
 
