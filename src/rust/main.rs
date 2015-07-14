@@ -151,9 +151,11 @@ fn lex<'a>(source_file: String) -> Vec<Token<'a>>
 {
     let mut tokens: Vec<Token> = lex_file(&*source_file, false);
     //tokens.print_to(lex_output_file, false);
+    tokens.print_to("output/stable/BasicArithmatic.java.lexed", false);
 
     remove_meta(&mut tokens);
     //tokens.print_to(preprocessed_output_file, false);
+    tokens.print_to("output/stable/BasicArithmatic.java.preprocessed", false);
 
     tokens
 }
@@ -271,6 +273,10 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
     for (index, token) in tokens[start_index..].iter().enumerate()
     {
         tokens_index = index + start_index;
+        if min_value < 0
+        {
+            min_value = 0;
+        }
         if min_value != 0
         {
             min_value -= 1;
@@ -305,24 +311,8 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
 
                 class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone(), None));
 
-                min_value =  low;
-                min_value -= tokens_index;
-            }
-            else if tokens[tokens_index + skip_amount].name == "identifier"
-            {
-                println!("------Incoming Static Variable Decl!");
-
-                let low = tokens_index + 2;
-                let high = find_next(tokens, low, ";").unwrap() + 1;
-
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, tokens_index);
-                symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
-                current_static_class_variables += 1;
-
-                class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone(), None));
-
-                min_value =  low;
-                min_value -= tokens_index;
+                min_value =  high;
+                min_value -= tokens_index + 1;
             }
             else if tokens[tokens_index + 1].name.starts_with("construct")
             {
@@ -428,6 +418,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
                 current_local_class_variables += 1;
 
                 class_structure.non_static_variables.push(MemberBlock (tokens_index, min_value, name.clone(), current_namespace.clone(), None));
+
                 min_value -= tokens_index + 1;
             }
         }
