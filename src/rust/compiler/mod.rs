@@ -630,6 +630,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         }
         else if token.name.starts_with("literal")
         {
+            // TODO: handle calls on string literals (maybe? is this practical with Java 1.7?)
             panic!("compile_statement: Literal on left hand side");
         }
         else if token.name == "identifier"
@@ -642,7 +643,9 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         else if token.value == "="
         {
             println!("compile_statement: found assignment {} | {}: {}", index, token.value, token.name);
+            plp.annotate("--Begin variable assignment--");
             plp.push(address_register);
+            plp.annotate("Evaluate right side");
             let (result_type, new_index) = compile_arithmetic_statement(tokens,
                                                                         index + 1,
                                                                         namespace,
@@ -654,11 +657,14 @@ pub fn compile_statement(   tokens: &Vec<Token>,
             plp.pop(address_register);
             plp.sw(target_register, 0, address_register);
             index = new_index;
+            plp.annotate("--End variable assignment--");
             println!("compile_statement: new index is {}", index);
         }
         else if token.value == "+="
         {
+            plp.annotate("--Begin variable assignment (+=)--");
             plp.push(address_register);
+            plp.annotate("Evaluate right side");
             let (result_type, new_index) = compile_arithmetic_statement(tokens,
                                                                         index + 1,
                                                                         namespace,
@@ -667,20 +673,64 @@ pub fn compile_statement(   tokens: &Vec<Token>,
                                                                         target_register,
                                                                         symbol_table,
                                                                         plp);
+            plp.annotate("Get memory location of left-side");
             plp.pop(address_register);
             plp.lw(registers.0, 0, address_register);
+            plp.annotate("Perform operation");
             plp.addu(target_register, target_register, registers.0);
+            plp.annotate("Assign value");
             plp.sw(target_register, 0, address_register);
+            plp.annotate("--End variable assignment--");
 
             index = new_index;
         }
         else if token.value == "-="
         {
-            panic!("compile_statement: Unsupported operator: {}\t{}", token.name, token.value);
+            plp.annotate("--Begin variable assignment (-=)--");
+            plp.push(address_register);
+            plp.annotate("Evaluate right side");
+            let (result_type, new_index) = compile_arithmetic_statement(tokens,
+                                                                        index + 1,
+                                                                        namespace,
+                                                                        registers.0,
+                                                                        (registers.1, registers.2),
+                                                                        target_register,
+                                                                        symbol_table,
+                                                                        plp);
+            plp.annotate("Get memory location of left-side");
+            plp.pop(address_register);
+            plp.lw(registers.0, 0, address_register);
+            plp.annotate("Perform operation");
+            plp.subu(target_register, target_register, registers.0);
+            plp.annotate("Assign value");
+            plp.sw(target_register, 0, address_register);
+            plp.annotate("--End variable assignment--");
+
+            index = new_index;
         }
         else if token.value == "*="
         {
-            panic!("compile_statement: Unsupported operator: {}\t{}", token.name, token.value);
+            plp.annotate("--Begin variable assignment (*=)--");
+            plp.push(address_register);
+            plp.annotate("Evaluate right side");
+            let (result_type, new_index) = compile_arithmetic_statement(tokens,
+                                                                        index + 1,
+                                                                        namespace,
+                                                                        registers.0,
+                                                                        (registers.1, registers.2),
+                                                                        target_register,
+                                                                        symbol_table,
+                                                                        plp);
+            plp.annotate("Get memory location of left-side");
+            plp.pop(address_register);
+            plp.lw(registers.0, 0, address_register);
+            plp.annotate("Perform operation");
+            plp.mullo(target_register, target_register, registers.0);
+            plp.annotate("Assign value");
+            plp.sw(target_register, 0, address_register);
+            plp.annotate("--End variable assignment--");
+
+            index = new_index;
         }
         else
         {
