@@ -27,27 +27,30 @@ fn main()
 {
     let (source_files, output_directory, base_writter) = parse_command_arguments();
 
+    // TODO: support multiple source files
     let source_file = &*source_files[0].clone();
     let was_compile_successful = compile_oracle(&["javac", source_file]);
-
-    let mut lex_output_file = output_directory.clone();
-    lex_output_file.push_str("stable/BasicArithmatic.java.lexed");
-    let mut preprocessed_output_file = output_directory.clone();
-    preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
 
     if was_compile_successful
     {
         let mut static_init_labels: Vec<String> = Vec::new();
         let mut symbols_table: SymbolTable = SymbolTable::new();
-        let mut structures: Vec<(Vec<Token>, ClassStructure)> = Vec::new();
+        let mut structures: Vec<(Vec<Token>, ClassStructure, String)> = Vec::new();
 
         // Parse all classes
         for source_file in source_files
         {
             let tokens = lex(source_file);
             let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_directory.clone());
+            let file_name = "output".to_string();
 
-            structures.push((tokens, class_structure));
+            // Print lexed output
+            let mut lex_output_file = output_directory.clone();
+            lex_output_file.push_str(&*file_name.clone());
+            lex_output_file.push_str(".lexed");
+            tokens.print_to(&*lex_output_file, false);
+
+            structures.push((tokens, class_structure, file_name));
         }
 
         // Compile and output all classes
@@ -55,9 +58,10 @@ fn main()
         {
             let ref tokens = structure.0;
             let ref class_structure = structure.1;
+            let ref file_name = structure.2;
 
             let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
-            dump(&*(output_directory.clone() + "output.asm"), code);
+            dump(&*(output_directory.clone() + &*file_name.clone() + ".asm"), code);
             static_init_labels.push(static_init_label.clone());
         }
 
@@ -71,7 +75,7 @@ fn main()
         };
 
         compile_program_header(&mut plp, &*main_label, &static_init_labels);
-        dump(&*(output_directory.clone() + "output_start.asm"), plp.code.clone());
+        dump(&*(output_directory.clone() + "main.asm"), plp.code.clone());
     }
 }
 
