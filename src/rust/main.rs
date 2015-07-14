@@ -28,6 +28,7 @@ fn main()
     let default_output_directory = "output/";
     let default_source = "sampleData/BasicArithmatic.java";
     let mut source_file = default_source.to_string();
+    let mut input_directory = String::new();
     let mut output_directory = default_output_directory.to_string();
 
     let mut opts = getopts::Options::new();
@@ -75,10 +76,10 @@ fn main()
 
     if matches.opt_present("i")
     {
-        output_directory = match matches.opt_str("d")
+        input_directory = match matches.opt_str("i")
         {
             Some(ref x) => x.clone() + "/",
-            None => default_output_directory.to_string(),
+            None => String::new(),
         };
     }
 
