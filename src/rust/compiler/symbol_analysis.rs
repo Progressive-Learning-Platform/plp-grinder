@@ -4,18 +4,23 @@ use symbols::symbol_table::*;
 use support::*;
 use plp::PLPWriter;
 
-/// @return: (static_memory_label, static_init_label)
-pub fn get_class_labels(class_symbol: &Symbol) -> (String, String)
+/// @return: (static_memory_label, static_init_label, local_init_label)
+pub fn get_class_labels(class_symbol: &Symbol) -> (String, String, String)
 {
     let mut static_memory_label = class_symbol.namespace.clone();
     static_memory_label.push_str("_");
     static_memory_label.push_str(&*class_symbol.name.clone());
     static_memory_label.push_str("_static");
 
+    let mut local_init_label = class_symbol.namespace.clone();
+    local_init_label.push_str("_");
+    local_init_label.push_str(&*class_symbol.name.clone());
+    local_init_label.push_str("_local_init");
+
     let mut static_init_label = static_memory_label.to_string();
     static_init_label.push_str("_init");
 
-    (static_memory_label, static_init_label)
+    (static_memory_label, static_init_label, local_init_label)
 }
 
 /// @return: (method_label, return_label)
