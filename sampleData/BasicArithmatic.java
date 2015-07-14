@@ -1,10 +1,15 @@
 public class BasicArithmatic
 {
-	private static final int constant = 10;
+	private static int constant = 10;
 
 	public static int casualMethod()
 	{
 		return 1;
+	}
+
+	public static int casualMethod(int a, int b)
+	{
+		return a + b;
 	}
 
 	public static void main(String args)
