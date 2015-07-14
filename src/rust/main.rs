@@ -25,58 +25,9 @@ use plp::PLPWriter;
 
 fn main()
 {
-    let default_output_directory = "output/";
-    let default_source = "sampleData/BasicArithmatic.java";
+    let (source_files, output_directory, base_writter) = parse_command_arguments();
 
-    let mut opts = getopts::Options::new();
-    opts.optopt("s", "src", "Set input file path", "PATH");
-    opts.optopt("d", "dest", "Sets root output directory of all files written to", "PATH");
-    opts.optopt("i", "source_folder", "Sets root input directory of all source files to read", "PATH");
-    opts.optflag("a", "annotate", "Enables annotation of output source file");
-    opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
-    opts.optflag("h", "help", "Prints usage of flags");
-
-    let args: Vec<String> = env::args().collect();
-    let matches = match opts.parse(&args[1..])
-    {
-        Ok(m) => m,
-        Err(f) => {
-                println!("{}", f);
-                process::exit(1);
-            }
-    };
-
-    if matches.opt_present("h")
-    {
-        let brief = format!("Usage: {} [options]", args[0]);
-        println!("{}", opts.usage(&brief));
-        return;
-    }
-
-    let mut source_file = match matches.opt_str("s")
-    {
-        Some(ref file_path) => file_path.clone(),
-        None => default_source.to_string(),
-    };
-
-    let mut output_directory = match matches.opt_str("d")
-    {
-        Some(ref directory_path) => directory_path.clone() + "/",
-        None => default_output_directory.to_string(),
-    };
-
-    let mut input_directory = match matches.opt_str("i")
-    {
-        Some(ref directory_path) => directory_path.clone() + "/",
-        None => String::new(),
-    };
-
-    //TODO match options
-    if !matches.free.is_empty() {
-        println!("Free arguments: {:?}", matches.free);
-    }
-
-    let source_file = &*source_file.clone();
+    let source_file = &*source_files[0].clone();
     let was_compile_successful = compile_oracle(&["javac", source_file]);
 
     let mut lex_output_file = output_directory.clone();
@@ -84,15 +35,8 @@ fn main()
     let mut preprocessed_output_file = output_directory.clone();
     preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
 
-    let mut source_files: Vec<&str> = Vec::new();
-    source_files.push(source_file);
-
     if was_compile_successful
     {
-        let mut base_writter = PLPWriter::new();
-        base_writter.annotations_enabled = matches.opt_present("a");
-        base_writter.mapping_enabled = matches.opt_present("m");
-
         let mut static_init_labels: Vec<String> = Vec::new();
         let mut symbols_table: SymbolTable = SymbolTable::new();
         let mut structures: Vec<(Vec<Token>, ClassStructure)> = Vec::new();
@@ -131,9 +75,76 @@ fn main()
     }
 }
 
-fn lex(source_file: &str) -> Vec<Token>
+/// Parse the command line arguments, and determine all source files to compile, based on the arguments and defaults
+/// @return a Vector of all source files to be compiled. Each element represents the relative path to one file
+/// @return the relative path to the desired output directory
+/// @return a base_writter specifying the settings of the PLPWriter
+fn parse_command_arguments() -> (Vec<String>, String, PLPWriter)
 {
-    let mut tokens: Vec<Token> = lex_file(source_file, false);
+    let default_output_directory = "output/";
+    let default_source = "sampleData/BasicArithmatic.java";
+
+    let mut opts = getopts::Options::new();
+    opts.optopt("s", "src", "Set input file path", "PATH");
+    opts.optopt("d", "dest", "Sets root output directory of all files written to", "PATH");
+    opts.optopt("i", "source_folder", "Sets root input directory of all source files to read", "PATH");
+    opts.optflag("a", "annotate", "Enables annotation of output source file");
+    opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
+    opts.optflag("h", "help", "Prints usage of options");
+
+    let args: Vec<String> = env::args().collect();
+    let matches = match opts.parse(&args[1..])
+    {
+        Ok(m) => m,
+        Err(f) => {
+                println!("{}", f);
+                process::exit(1);
+            }
+    };
+
+    if matches.opt_present("h")
+    {
+        let brief = format!("Usage: {} [options]", args[0]);
+        println!("{}", opts.usage(&brief));
+        process::exit(0);
+    }
+
+    let mut source_file = match matches.opt_str("s")
+    {
+        Some(ref file_path) => file_path.clone(),
+        None => default_source.to_string(),
+    };
+
+    let mut output_directory = match matches.opt_str("d")
+    {
+        Some(ref directory_path) => directory_path.clone() + "/",
+        None => default_output_directory.to_string(),
+    };
+
+    let mut input_directory = match matches.opt_str("i")
+    {
+        Some(ref directory_path) => directory_path.clone() + "/",
+        None => String::new(),
+    };
+
+    //TODO match options
+    if !matches.free.is_empty() {
+        println!("Free arguments: {:?}", matches.free);
+    }
+
+    let mut base_writter = PLPWriter::new();
+    base_writter.annotations_enabled = matches.opt_present("a");
+    base_writter.mapping_enabled = matches.opt_present("m");
+
+    let mut files = Vec::new();
+    files.push(source_file.clone());
+
+    (files, output_directory, base_writter)
+}
+
+fn lex<'a>(source_file: String) -> Vec<Token<'a>>
+{
+    let mut tokens: Vec<Token> = lex_file(&*source_file, false);
     //tokens.print_to(lex_output_file, false);
 
     remove_meta(&mut tokens);
