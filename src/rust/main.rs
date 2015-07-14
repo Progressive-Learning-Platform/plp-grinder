@@ -101,7 +101,8 @@ fn main()
         for source_file in source_files
         {
             let tokens = lex(source_file);
-            let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_directory.clone());
+            let starting_point = find_next(&tokens, 0, "{").unwrap() + 1;
+            let class_structure = parse_class(&tokens, starting_point, tokens[starting_point - 2].value.clone(), true, &mut symbols_table, output_directory.clone());
 
             structures.push((tokens, class_structure));
         }
@@ -250,87 +251,98 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
     println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
     let mut skip_amount = 0;
+    let mut tokens_index;
 
     for (index, token) in tokens[start_index..].iter().enumerate()
     {
+        tokens_index = index + start_index;
         if min_value != 0
         {
             min_value -= 1;
             continue;
         }
+
+        if tokens[tokens_index].value == "final"
+        {
+            panic!("Unsupported or Unexpected token: {} + {}.", tokens[tokens_index].value, tokens[tokens_index].name);
+        }
         //Static Variable/Method/Class
-        if token.name == "mod.access"
+        else if token.name == "mod.access"
         {
             skip_amount = 3;
-            if tokens[index + skip_amount].name.starts_with("operator")
+            if tokens[tokens_index + 1].value == "final"
+            {
+                panic!("Unsupported or Unexpected token: {} + {}.", tokens[tokens_index + 1].value, tokens[tokens_index + 1].name);
+            }
+            else if tokens[tokens_index + skip_amount].name.starts_with("operator")
             {
                 //TODO account for final
                 println!("------Incoming Static Variable Decl!");
 
-                let low = index + 1;
+                let low = tokens_index + 1;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, tokens_index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
                 class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone(), None));
 
                 min_value =  low;
-                min_value -= index;
+                min_value -= tokens_index;
             }
-            else if tokens[index + skip_amount].name == "identifier"
+            else if tokens[tokens_index + skip_amount].name == "identifier"
             {
                 //TODO account for final
                 println!("------Incoming Static Variable Decl!");
 
-                let low = index + 2;
+                let low = tokens_index + 2;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, tokens_index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_static_class_variables += 1;
 
                 class_structure.static_variables.push(MemberBlock (low, high, name.clone(), current_namespace.clone(), None));
 
                 min_value =  low;
-                min_value -= index;
+                min_value -= tokens_index;
             }
-            else if tokens[index + 1].name.starts_with("construct")
+            else if tokens[tokens_index + 1].name.starts_with("construct")
             {
-                if tokens[index + skip_amount].name.starts_with("control")
+                if tokens[tokens_index + skip_amount].name.starts_with("control")
                 {
                     //TODO add symbol to table
                     //TODO account for final
                     println!("------Incoming Static Class Decl!");
-                    let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                    let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                     min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
                     //parse_class
                     //let temp_symbol = *symbols_table.lookup_variable(&*current_namespace, &*name);
-                    class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone(), current_namespace.clone(), None));
-                    min_value -= index + 1;
+                    //class_structure.static_classes.push(MemberBlock (starting_point - 1, min_value, tokens[index + 2].value.clone(), current_namespace.clone(), None));
+                    min_value -= tokens_index + 1;
                 }
                 else
                 {
-                    panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+                    panic!("Unsupported or Unexpected token: {} + {}.", tokens[tokens_index + skip_amount].value, tokens[tokens_index + skip_amount].name);
                 }
             }
-            else if tokens[index + skip_amount].name.starts_with("control")
+            else if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
                 //TODO account for final
                 println!("------Incoming Static Method Decl!");
-                let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                let (method_name, argument_types) = parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
+                let (method_name, argument_types) = parse_method(tokens, tokens_index, symbols_table, min_value, current_namespace.clone());
 
                 class_structure.static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone(), Some(argument_types)));
-                min_value -=  index + 1;
+                min_value -=  tokens_index + 1;
             }
             else
             {
-                panic!("Unsupported or Unexpected token: {}: {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+                panic!("Unsupported or Unexpected token: {}: {}.", tokens[tokens_index + skip_amount].value, tokens[tokens_index + skip_amount].name);
             }
 
         }
@@ -338,23 +350,23 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
         else if token.name.starts_with("construct")
         {
             skip_amount = 2;
-            if tokens[index + skip_amount].name.starts_with("control")
+            if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
                 //TODO add symbol to table
                 //TODO account for final
                 println!("------Incoming Non-Static Class Decl!");
-                let index_after_brace = index + skip_amount + 1;
+                let index_after_brace = tokens_index + skip_amount + 1;
                 min_value = identify_body_bounds(tokens, index_after_brace, ("{", "}")).unwrap() + 1;
 
                 //symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
 
-                class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone(), None));
+                //class_structure.non_static_classes.push(MemberBlock (index_after_brace - 1, min_value, tokens[index + 1].value.clone(), current_namespace.clone(), None));
                 //TODO parse_class(tokens, index, symbols_table);
                 min_value = 0;
             }
             else
             {
-                panic!("Unsupported or Unexpected token: {} + {}.", tokens[index + skip_amount].value, tokens[index + skip_amount].name);
+                panic!("Unsupported or Unexpected token: {} + {}.", tokens[tokens_index + skip_amount].value, tokens[tokens_index + skip_amount].name);
             }
         }
         //Non-Static Variable/Method/Class
@@ -362,34 +374,34 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
         {
             skip_amount = 2;
 
-            if tokens[index + skip_amount].name.starts_with("control")
+            if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
                 //TODO account for final
                 println!("------Incoming Non-Static Method Decl!");
-                let starting_point = find_next(tokens, index, "{").unwrap() + 1;
+                let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
-                let (method_name, argument_types) = parse_method(tokens, index, symbols_table, min_value, current_namespace.clone());
+                let (method_name, argument_types) = parse_method(tokens, tokens_index, symbols_table, min_value, current_namespace.clone());
 
                 class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone(), Some(argument_types)));
-                min_value -= index + 1;
+                min_value -= tokens_index + 1;
                 //check for control
             }
-            else if tokens[index + skip_amount].name.starts_with("operator")
+            else if tokens[tokens_index + skip_amount].name.starts_with("operator")
             {
                 //TODO account for final
                 println!("------Incoming Non-Static Variable Decl!");
-                min_value =  find_next(tokens, index, ";").unwrap() + 1;
+                min_value =  find_next(tokens, tokens_index, ";").unwrap() + 1;
 
-                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
+                let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, tokens_index);
                 symbols_table.add(symbol_class, current_namespace.clone(), name.clone(), is_static, false, false, current_local_class_variables, current_static_class_variables, 0);
                 current_local_class_variables += 1;
 
-                class_structure.non_static_variables.push(MemberBlock (index, min_value, name.clone(), current_namespace.clone(), None));
-                min_value -= index + 1;
+                class_structure.non_static_variables.push(MemberBlock (tokens_index, min_value, name.clone(), current_namespace.clone(), None));
+                min_value -= tokens_index + 1;
             }
         }
-        println!("\tIndex: {} | Token -> {} : {}", index, token.value, token.name );
+        println!("\tIndex: {} | Token -> {} : {}", tokens_index, token.value, token.name );
         //deal with parameters
     }
     println!("\n<                 Class Overview                  >");
@@ -402,7 +414,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
     println!("\n<---------------- Static Classes ----------------->");
     for member_block in class_structure.static_classes.iter()
     {
-        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
+        //println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Static Methods ----------------->");
@@ -420,7 +432,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, is_c
     println!("\n<---------------- Non-Static Classes ----------------->");
     for member_block in class_structure.non_static_classes.iter()
     {
-        println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
+        //println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
 
     println!("\n<---------------- Non-Static Methods ----------------->");
@@ -600,11 +612,6 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
     //Add function symbol
     symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments.clone(), static_namespace.clone(), static_variables.len()), current_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
     (method_name, parameter_arguments)
-}
-
-fn parse_conditional_parameters(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String)
-{
-
 }
 
 fn parse_variable<'a>(tokens: &Vec<Token>, start_index: usize) -> (String, String, bool, SymbolClass)
