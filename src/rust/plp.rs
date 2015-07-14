@@ -172,6 +172,20 @@ impl PLPWriter
 		self.code.push_str(&*code);
 	}
 
+	pub fn addiu(&mut self, register_sum: &str, register_addend1: &str, addend2: i16)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("addiu ");
+		code.push_str(register_sum);
+		code.push_str(", ");
+		code.push_str(register_addend1);
+		code.push_str(", ");
+		code.push_str(&*addend2.to_string());
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
 	pub fn subu(&mut self, register_difference: &str, register_addend1: &str, register_addend2: &str)
 	{
 		let mut code = self.create_indented_string();
