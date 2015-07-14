@@ -87,7 +87,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     plp.annotate(&*annotation);
 }
 
-pub fn compile_program_header(plp: &mut PLPWriter, main_label: &str, static_init_labels: &Vec<&str>)
+pub fn compile_program_header(plp: &mut PLPWriter, main_label: &str, static_init_labels: &Vec<String>)
 {
     // Program headers
     plp.org("0x10000000");
@@ -100,7 +100,7 @@ pub fn compile_program_header(plp: &mut PLPWriter, main_label: &str, static_init
     plp.annotate("Initialize the static memory of all classes");
     for static_init_label in static_init_labels
     {
-        plp.call(static_init_label);
+        plp.call(&*static_init_label);
     }
 
     // Program execution

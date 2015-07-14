@@ -100,83 +100,116 @@ fn main()
     let mut preprocessed_output_file = output_destination.clone();
     preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
 
+    let mut source_files: Vec<&str> = Vec::new();
+    source_files.push(source_file);
+
     if was_compile_successful
     {
         let mut base_writter = PLPWriter::new();
         base_writter.annotations_enabled = matches.opt_present("a");
         base_writter.mapping_enabled = matches.opt_present("m");
 
-        compile(source_file, &base_writter, output_destination.clone());
+        let mut static_init_labels: Vec<String> = Vec::new();
+        let mut symbols_table: SymbolTable = SymbolTable::new();
+        let mut structures: Vec<(Vec<Token>, ClassStructure)> = Vec::new();
+
+        // Parse all classes
+        for source_file in source_files
+        {
+            let tokens = lex(source_file);
+            let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
+
+            structures.push((tokens, class_structure));
+        }
+
+        // Compile and output all classes
+        for structure in structures
+        {
+            let ref tokens = structure.0;
+            let ref class_structure = structure.1;
+
+            let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
+            dump(&*(output_destination.clone() + "output.asm"), code);
+            static_init_labels.push(static_init_label.clone());
+        }
+
+        // Compile starting file
+        let mut plp = PLPWriter::new();
+        let main_symbol = symbols_table.lookup_by_name("main")[0];
+        let main_label = match main_symbol.location
+        {
+            SymbolLocation::Memory(ref address) => address.label_name.clone(),
+            _ => { panic!("Main found was not a function!"); },
+        };
+
+        compile_program_header(&mut plp, &*main_label, &static_init_labels);
+        dump(&*(output_destination.clone() + "output_start.asm"), plp.code.clone());
     }
 }
 
-fn compile(source_file: &str, base_writter: &PLPWriter, output_destination: String)
+fn lex(source_file: &str) -> Vec<Token>
 {
-    // TODO: support multiple source files
     let mut tokens: Vec<Token> = lex_file(source_file, false);
     //tokens.print_to(lex_output_file, false);
 
     remove_meta(&mut tokens);
     //tokens.print_to(preprocessed_output_file, false);
 
-    let mut symbols_table: SymbolTable = SymbolTable::new();
-    let class_structure = parse_class(&tokens, 0, tokens[1].value.clone(), true, &mut symbols_table, output_destination.clone());
-    let class_symbol = &class_structure.class_symbol;
+    tokens
+}
 
-    let main_symbol = symbols_table.lookup_by_name("main")[0];
-    let main_label = match main_symbol.location {
-            SymbolLocation::Memory(ref address) => address.label_name.clone(),
-            _ => { panic!("Main found was not a function!"); },
-        };
+/// @return (code, static_init_label)
+fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table: &SymbolTable, base_writter: &PLPWriter) -> (String, String)
+{
+    let class_symbol = &class_structure.class_symbol;
 
     let mut plp = base_writter.copy();
     let (static_memory_label, static_init_label) = get_class_labels(&class_symbol);
 
-    // Compile static_init for class
-    let mut static_init = base_writter.copy();
-    static_init.label(&*static_init_label);
-    static_init.indent_level += 1;
-    let static_size = class_structure.static_variables.len();
-    for static_variable in class_structure.static_variables
-    {
-        let start = static_variable.0;
-        let name = static_variable.2;
-        let namespace = static_variable.3;
-
-        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-        compile_statement(&tokens, start, &*namespace, registers, &symbols_table, &mut static_init);
-    }
-
-    let mut static_init_labels = Vec::new();
-    static_init_labels.push(&*static_init_label);
-    compile_program_header(&mut plp, &*main_label, &static_init_labels);
-
     // Static class memory
+    let static_size = class_structure.static_variables.len();
     plp.label(&*static_memory_label);
     plp.indent_level += 1;
     plp.space(static_size as u16);
     plp.indent_level -= 1;
 
-    // TODO: write all static blocks
+    // Compile static_init for class
     plp.println();
-    plp.code.push_str(&*static_init.code);
+    plp.label(&*static_init_label);
+    plp.indent_level += 1;
+    for index in 0..class_structure.static_variables.len()
+    {
+        let ref static_variable = class_structure.static_variables[index];
+        let start = static_variable.0;
+        let name = static_variable.2.clone();
+        let namespace = static_variable.3.clone();
+
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        compile_statement(&tokens, start, &*namespace, registers, symbols_table, &mut plp);
+    }
+    plp.indent_level -= 1;
+
+    // TODO: compile local_init
+    // TODO: compile local_methods
+    // TODO: compile constructors
 
     // Compile static methods
-    for static_method in class_structure.static_methods
+    for index in 0..class_structure.static_methods.len()
     {
+        let ref static_method = class_structure.static_methods[index];
         let range = (static_method.0, static_method.1);
-        let name = static_method.2;
-        let namespace = static_method.3;
-        let argument_types = static_method.4.unwrap();
+        let name = static_method.2.clone();
+        let namespace = static_method.3.clone();
+        let argument_types = static_method.4.clone().unwrap();
 
         let method_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types).unwrap();
 
         let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
-        compile_method_body(&tokens, range, method_symbol, &*namespace, registers, &symbols_table, &mut plp);
+        compile_method_body(&tokens, range, method_symbol, &*namespace, registers, symbols_table, &mut plp);
     }
     plp.label("end");
 
-    dump(&*(output_destination.clone() + "output.asm"), plp.code);
+    (plp.code, static_init_label)
 }
 
 ///Start on open curly brace
