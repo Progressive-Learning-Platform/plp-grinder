@@ -164,17 +164,20 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
     let class_symbol = &class_structure.class_symbol;
 
     let mut plp = base_writter.copy();
-    let (static_memory_label, static_init_label) = get_class_labels(&class_symbol);
+    let (static_memory_label, static_init_label, local_init_label) = get_class_labels(&class_symbol);
 
     // Static class memory
     let static_size = class_structure.static_variables.len();
+    plp.annotate("=============== Static Class Memory =================");
     plp.label(&*static_memory_label);
     plp.indent_level += 1;
     plp.space(static_size as u16);
     plp.indent_level -= 1;
+    plp.annotate("============= END Static Class Memory ===============");
 
     // Compile static_init for class
     plp.println();
+    plp.annotate("================ Static Init Block =================");
     plp.label(&*static_init_label);
     plp.indent_level += 1;
     for index in 0..class_structure.static_variables.len()
@@ -187,13 +190,51 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
         let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
         compile_statement(&tokens, start, &*namespace, registers, symbols_table, &mut plp);
     }
+    plp.ret();
     plp.indent_level -= 1;
+    plp.annotate("============== END Static Init Block ===============");
+    // TODO: handle static init blocks ("static { ...[logic]... }")
 
-    // TODO: compile local_init
-    // TODO: compile local_methods
+    // Compile local_init for class
+    plp.println();
+    plp.annotate("================ Local Init Block ==================");
+    plp.label(&*local_init_label);
+    plp.indent_level += 1;
+    for index in 0..class_structure.non_static_variables.len()
+    {
+        let ref local_variable = class_structure.non_static_variables[index];
+        let start = local_variable.0;
+        let name = local_variable.2.clone();
+        let namespace = local_variable.3.clone();
+
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        compile_statement(&tokens, start, &*namespace, registers, symbols_table, &mut plp);
+    }
+    plp.ret();
+    plp.indent_level -= 1;
+    plp.annotate("=============== END Local Init Block ===============");
+
     // TODO: compile constructors
 
+    // Compile local methods
+    plp.annotate("================== Local Methods ===================");
+    for index in 0..class_structure.non_static_methods.len()
+    {
+        let ref local_method = class_structure.non_static_methods[index];
+        let range = (local_method.0, local_method.1);
+        let name = local_method.2.clone();
+        let namespace = local_method.3.clone();
+        let argument_types = local_method.4.clone().unwrap();
+
+        let method_symbol = symbols_table.lookup_function(&*namespace, &*name, &argument_types).unwrap();
+
+        let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
+        compile_method_body(&tokens, range, method_symbol, &*namespace, registers, symbols_table, &mut plp);
+    }
+    plp.annotate("================ END Local Methods =================");
+
     // Compile static methods
+    plp.annotate("================== Static Methods ==================");
     for index in 0..class_structure.static_methods.len()
     {
         let ref static_method = class_structure.static_methods[index];
@@ -207,6 +248,7 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
         let registers = ("$t0", "$t1", "$t2", "$t3", "$t4");
         compile_method_body(&tokens, range, method_symbol, &*namespace, registers, symbols_table, &mut plp);
     }
+    plp.annotate("================ END Static Methods ================");
     plp.label("end");
 
     (plp.code, static_init_label)

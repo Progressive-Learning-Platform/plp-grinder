@@ -20,6 +20,12 @@ BasicArithmatic_BasicArithmatic_static_init:
 	pop $t3
 	pop $t4
 	sw $t3, 0($t4)
+	return
+	nop
+
+BasicArithmatic_BasicArithmatic_local_init:
+	return
+	nop
 
 BasicArithmatic_casualMethod_static:
 	.space 0
