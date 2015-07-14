@@ -642,6 +642,13 @@ pub fn compile_statement(   tokens: &Vec<Token>,
             index = compile_symbol_sequence(tokens, index, namespace, registers.0, (registers.1, registers.2), target_register, Some(address_register), symbol_table, plp);
             println!("compile_statement: new index is {}", index);
         }
+        else if token.name == "operator.unary"
+        {
+            println!("compile_statement: found identifier {} | {}: {}", index, token.value, token.name);
+            compile_unary_operation(token, address_register, target_register, plp);
+            index += 1;
+            println!("compile_statement: new index is {}", index);
+        }
         else if token.value == "="
         {
             println!("compile_statement: found assignment {} | {}: {}", index, token.value, token.name);
@@ -1180,6 +1187,18 @@ pub fn compile_evaluation(  tokens: &Vec<Token>,            // used
     }
 
     end_index
+}
+
+pub fn compile_unary_operation(operator: &Token, address_register: &str, result_register: &str, plp: &mut PLPWriter)
+{
+    plp.lw(result_register, 0, address_register);
+    match &*operator.value
+    {
+        "++" => plp.addiu(result_register, result_register, 1),
+        "--" => plp.addiu(result_register, result_register, -1),
+         _  => panic!("Unsupported operator: {}: {}", operator.name, operator.value)
+    };
+    plp.sw(result_register, 0, address_register);
 }
 
 /// Writes plp code to perform a binary operation on two registers, and store the result in a third register
