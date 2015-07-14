@@ -1,15 +1,16 @@
 public class BasicArithmatic
 {
+	private static class StaticClass
+	{
+		private int aNumber = 1;
+		private static int aSecondNumber = 2;
+	}
+
 	private static int constant = 10;
 
 	public static int casualMethod()
 	{
 		return 1;
-	}
-
-	public static int casualMethod(int a, int b)
-	{
-		return a + b;
 	}
 
 	public static void main(String args)
