@@ -8,6 +8,8 @@ use symbols::symbol_table::*;
 use support::*;
 use plp::PLPWriter;
 
+// TODO: compile with lwm and swm instead of li $t0, label; lw $t0, 0($t0)
+
 /// ASSUMPTION: before calling a method:
 /// * a reference of the caller or $0 (if the method is called statically) will be loaded to call_buffer
 /// * all arguments for the method will be pushed to the stack
@@ -1191,6 +1193,46 @@ pub fn compile_arithmetic_operation(operator: &Token, operand_registers: (&str, 
         "+" => plp.addu(result_register, operand_registers.0, operand_registers.1),
         "-" => plp.subu(result_register, operand_registers.0, operand_registers.1),
         "*" => plp.mullo(result_register, operand_registers.0, operand_registers.1),
+        ">" => plp.slt(result_register, operand_registers.0, operand_registers.1),
+        "<" => plp.slt(result_register, operand_registers.1, operand_registers.0),
+        ">>" => plp.srlv(result_register, operand_registers.0, operand_registers.1),
+        "<<" => plp.sllv(result_register, operand_registers.0, operand_registers.1),
+        "||" => plp.or(result_register, operand_registers.0, operand_registers.1),
+        "&&" => plp.and(result_register, operand_registers.0, operand_registers.1),
+        "|" => plp.or(result_register, operand_registers.0, operand_registers.1),
+        "&" => plp.and(result_register, operand_registers.0, operand_registers.1),
+        "<=" => compile_less_than_or_equal_to(result_register, operand_registers.0, operand_registers.1, plp),
+        ">=" => compile_less_than_or_equal_to(result_register, operand_registers.1, operand_registers.0, plp),
+        "!=" => compile_not_equal_to(result_register, operand_registers.1, operand_registers.0, "t9", plp),
+        "==" => compile_equal_to(result_register, operand_registers.1, operand_registers.0, "t9", plp),
          _  => panic!("Unsupported operator: {}: {}", operator.name, operator.value)
     };
+}
+
+pub fn compile_less_than_or_equal_to(result_register: &str, operand1_register: &str, operand2_register: &str, plp: &mut PLPWriter)
+{
+    // if b !< a, then a <= b
+    plp.slt(result_register, operand2_register, operand1_register);
+    plp.nor(result_register, result_register, "$0");
+}
+
+pub fn compile_not_equal_to(result_register: &str, operand1_register: &str, operand2_register: &str, temp_register: &str, plp: &mut PLPWriter)
+{
+    compile_not_equal_to(result_register, operand1_register, operand2_register, temp_register, plp);
+    plp.nor(result_register, result_register, "$0");
+}
+
+pub fn compile_equal_to(result_register: &str, operand1_register: &str, operand2_register: &str, temp_register: &str, plp: &mut PLPWriter)
+{
+    // ((a && b) == a) <=> (a = b)
+    // (x !< a && a !< x) <=> (a == x)
+    plp.and(result_register, operand2_register, operand1_register); // x = (a && b) = result_register
+
+    plp.slt(temp_register, result_register, operand1_register); // (x < a)? = temp_register
+    plp.nor(temp_register, temp_register, "$0"); // (x !< a)? = temp_register
+
+    plp.slt(result_register, operand1_register, result_register); // (a < x)? = result_register
+    plp.nor(result_register, result_register, "$0"); // (a !< x)? = result_register
+
+    plp.and(result_register, result_register, temp_register); // (x !< a && a !< x) = (a == x) = result_register
 }
