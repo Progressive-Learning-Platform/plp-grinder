@@ -200,6 +200,104 @@ impl PLPWriter
 		self.code.push_str(&*code);
 	}
 
+	pub fn slt(&mut self, register_result: &str, register_operand1: &str, register_operand2: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("slt ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_operand2);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn sltu(&mut self, register_result: &str, register_operand1: &str, register_operand2: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("sltu ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_operand2);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn sllv(&mut self, register_result: &str, register_operand1: &str, register_amount: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("sllv ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_amount);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn srlv(&mut self, register_result: &str, register_operand1: &str, register_amount: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("srlv ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_amount);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn and(&mut self, register_result: &str, register_operand1: &str, register_operand2: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("and ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_operand2);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn or(&mut self, register_result: &str, register_operand1: &str, register_operand2: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("or ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_operand2);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
+	pub fn nor(&mut self, register_result: &str, register_operand1: &str, register_operand2: &str)
+	{
+		let mut code = self.create_indented_string();
+		code.push_str("nor ");
+		code.push_str(register_result);
+		code.push_str(", ");
+		code.push_str(register_operand1);
+		code.push_str(", ");
+		code.push_str(register_operand2);
+		code.push_str("\n");
+
+		self.code.push_str(&*code);
+	}
+
 	pub fn sw(&mut self, register_target: &str, offset: u16, register_address: &str)
 	{
 		let mut code = self.create_indented_string();
