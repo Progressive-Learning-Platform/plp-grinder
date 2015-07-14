@@ -31,7 +31,7 @@ pub fn dump(file_path: &str, data: String)
 
     match fs::create_dir_all(path.parent().unwrap()) {
             Err(why) => println!("! {:?}", why.kind()),
-            Ok(_) => {println!("Folder already created")},
+            Ok(_) => {},
         }
 
     let mut file = match File::create(&path)

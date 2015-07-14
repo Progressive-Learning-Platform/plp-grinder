@@ -25,6 +25,67 @@ use plp::PLPWriter;
 
 fn main()
 {
+    let (source_files, output_directory, base_writter) = parse_command_arguments();
+
+    // TODO: support multiple source files
+    let source_file = &*source_files[0].clone();
+    let was_compile_successful = compile_oracle(&["javac", source_file]);
+
+    if was_compile_successful
+    {
+        let mut static_init_labels: Vec<String> = Vec::new();
+        let mut symbols_table: SymbolTable = SymbolTable::new();
+        let mut structures: Vec<(Vec<Token>, ClassStructure, String)> = Vec::new();
+
+        // Parse all classes
+        for source_file in source_files
+        {
+            let tokens = lex(source_file);
+            let starting_point = find_next(&tokens, 0, "{").unwrap() + 1;
+            let class_structure = parse_class(&tokens, starting_point, tokens[starting_point - 2].value.clone(), true, &mut symbols_table, output_directory.clone());
+            let file_name = "output".to_string();
+
+            // Print lexed output
+            let mut lex_output_file = output_directory.clone();
+            lex_output_file.push_str(&*file_name.clone());
+            lex_output_file.push_str(".lexed");
+            tokens.print_to(&*lex_output_file, false);
+
+            structures.push((tokens, class_structure, file_name));
+        }
+
+        // Compile and output all classes
+        for structure in structures
+        {
+            let ref tokens = structure.0;
+            let ref class_structure = structure.1;
+            let ref file_name = structure.2;
+
+            let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
+            dump(&*(output_directory.clone() + &*file_name.clone() + ".asm"), code);
+            static_init_labels.push(static_init_label.clone());
+        }
+
+        // Compile starting file
+        let mut plp = PLPWriter::new();
+        let main_symbol = symbols_table.lookup_by_name("main")[0];
+        let main_label = match main_symbol.location
+        {
+            SymbolLocation::Memory(ref address) => address.label_name.clone(),
+            _ => { panic!("Main found was not a function!"); },
+        };
+
+        compile_program_header(&mut plp, &*main_label, &static_init_labels);
+        dump(&*(output_directory.clone() + "main.asm"), plp.code.clone());
+    }
+}
+
+/// Parse the command line arguments, and determine all source files to compile, based on the arguments and defaults
+/// @return a Vector of all source files to be compiled. Each element represents the relative path to one file
+/// @return the relative path to the desired output directory
+/// @return a base_writter specifying the settings of the PLPWriter
+fn parse_command_arguments() -> (Vec<String>, String, PLPWriter)
+{
     let default_output_directory = "output/";
     let default_source = "sampleData/BasicArithmatic.java";
 
@@ -34,7 +95,7 @@ fn main()
     opts.optopt("i", "source_folder", "Sets root input directory of all source files to read", "PATH");
     opts.optflag("a", "annotate", "Enables annotation of output source file");
     opts.optflag("m", "map", "Enables mapping of line numbers from Java source to output asm source");
-    opts.optflag("h", "help", "Prints usage of flags");
+    opts.optflag("h", "help", "Prints usage of options");
 
     let args: Vec<String> = env::args().collect();
     let matches = match opts.parse(&args[1..])
@@ -50,7 +111,7 @@ fn main()
     {
         let brief = format!("Usage: {} [options]", args[0]);
         println!("{}", opts.usage(&brief));
-        return;
+        process::exit(0);
     }
 
     let mut source_file = match matches.opt_str("s")
@@ -76,65 +137,19 @@ fn main()
         println!("Free arguments: {:?}", matches.free);
     }
 
-    let source_file = &*source_file.clone();
-    let was_compile_successful = compile_oracle(&["javac", source_file]);
+    let mut base_writter = PLPWriter::new();
+    base_writter.annotations_enabled = matches.opt_present("a");
+    base_writter.mapping_enabled = matches.opt_present("m");
 
-    let mut lex_output_file = output_directory.clone();
-    lex_output_file.push_str("stable/BasicArithmatic.java.lexed");
-    let mut preprocessed_output_file = output_directory.clone();
-    preprocessed_output_file.push_str("stable/BasicArithmatic.java.preprocessed");
+    let mut files = Vec::new();
+    files.push(source_file.clone());
 
-    let mut source_files: Vec<&str> = Vec::new();
-    source_files.push(source_file);
-
-    if was_compile_successful
-    {
-        let mut base_writter = PLPWriter::new();
-        base_writter.annotations_enabled = matches.opt_present("a");
-        base_writter.mapping_enabled = matches.opt_present("m");
-
-        let mut static_init_labels: Vec<String> = Vec::new();
-        let mut symbols_table: SymbolTable = SymbolTable::new();
-        let mut structures: Vec<(Vec<Token>, ClassStructure)> = Vec::new();
-
-        // Parse all classes
-        for source_file in source_files
-        {
-            let tokens = lex(source_file);
-            let starting_point = find_next(&tokens, 0, "{").unwrap() + 1;
-            let class_structure = parse_class(&tokens, starting_point, tokens[starting_point - 2].value.clone(), true, &mut symbols_table, output_directory.clone());
-
-            structures.push((tokens, class_structure));
-        }
-
-        // Compile and output all classes
-        for structure in structures
-        {
-            let ref tokens = structure.0;
-            let ref class_structure = structure.1;
-
-            let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
-            dump(&*(output_directory.clone() + "output.asm"), code);
-            static_init_labels.push(static_init_label.clone());
-        }
-
-        // Compile starting file
-        let mut plp = PLPWriter::new();
-        let main_symbol = symbols_table.lookup_by_name("main")[0];
-        let main_label = match main_symbol.location
-        {
-            SymbolLocation::Memory(ref address) => address.label_name.clone(),
-            _ => { panic!("Main found was not a function!"); },
-        };
-
-        compile_program_header(&mut plp, &*main_label, &static_init_labels);
-        dump(&*(output_directory.clone() + "output_start.asm"), plp.code.clone());
-    }
+    (files, output_directory, base_writter)
 }
 
-fn lex(source_file: &str) -> Vec<Token>
+fn lex<'a>(source_file: String) -> Vec<Token<'a>>
 {
-    let mut tokens: Vec<Token> = lex_file(source_file, false);
+    let mut tokens: Vec<Token> = lex_file(&*source_file, false);
     //tokens.print_to(lex_output_file, false);
 
     remove_meta(&mut tokens);
