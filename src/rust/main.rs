@@ -272,8 +272,9 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
     let mut current_static_class_variables = 0;
 
     class_structure.class_symbol = Symbol {namespace: namespace.clone(), is_static: is_class_static, name: class_name.clone(), symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
+    symbols_table.add(SymbolClass::Structure("class".to_string()), namespace.clone(), class_name.clone(), is_class_static, false, false, 0, 0, 0);
 
-    println!("\n<------------ Parse Class --------------->");
+    //println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
     let mut skip_amount = 0;
     let mut tokens_index;
@@ -308,7 +309,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             }
             else if tokens[tokens_index + skip_amount].name.starts_with("operator")
             {
-                println!("------Incoming Static Variable Decl!");
+                //println!("------Incoming Static Variable Decl!");
 
                 let low = tokens_index + 1;
                 let high = find_next(tokens, low, ";").unwrap() + 1;
@@ -326,7 +327,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             {
                 if tokens[tokens_index + skip_amount].name.starts_with("control")
                 {
-                    println!("------Incoming Static Class Decl!");
+                    //println!("------Incoming Static Class Decl!");
                     let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                     min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
@@ -341,7 +342,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             }
             else if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
-                println!("------Incoming Static Method Decl!");
+                //println!("------Incoming Static Method Decl!");
                 let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
@@ -362,7 +363,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             skip_amount = 2;
             if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
-                println!("------Incoming Non-Static Class Decl!");
+                //println!("------Incoming Non-Static Class Decl!");
                 let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
@@ -382,7 +383,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
 
             if tokens[tokens_index + skip_amount].name.starts_with("control")
             {
-                println!("------Incoming Non-Static Method Decl!");
+                //println!("------Incoming Non-Static Method Decl!");
                 let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
                 min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
 
@@ -394,7 +395,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             }
             else if tokens[tokens_index + skip_amount].name.starts_with("operator")
             {
-                println!("------Incoming Non-Static Variable Decl!");
+                //println!("------Incoming Non-Static Variable Decl!");
                 min_value =  find_next(tokens, tokens_index, ";").unwrap() + 1;
 
                 let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, tokens_index);
@@ -406,11 +407,12 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
                 min_value -= tokens_index + 1;
             }
         }
-        println!("\tIndex: {} | Token -> {} : {}", tokens_index, token.value, token.name );
+        //println!("\tIndex: {} | Token -> {} : {}", tokens_index, token.value, token.name );
         //deal with parameters
     }
     println!("\n\n=============================================================");
     println!("<                 {} Overview                  >\n", class_name);
+    /*
     println!("<                 Class Structure Overview                  >");
     println!("Class Symbol: name {}, namespace {}, is_static {}\n", class_structure.class_symbol.name, class_structure.class_symbol.namespace, class_structure.class_symbol.is_static);
     println!("<---------------- Static Variables --------------->");
@@ -448,6 +450,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
     {
         println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
+    */
     println!("\n");
 
     let mut symbols_table_dump: String = String::new();
@@ -500,7 +503,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
                 },
                 SymbolClass::Function(_, _, _, _) =>
                 {
-                    location_and_class.push_str("Class::Function(");
+                    location_and_class.push_str("Class::Function(_,_,_,_");
                     //location_and_class.push_str(&*memory_address.offset.to_string());
                     location_and_class.push_str(")");
                 },
@@ -518,10 +521,12 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
         formatted_symbol.push_str("namespace: ");
         formatted_symbol.push_str(&*symbol.namespace.clone());
         formatted_symbol.push_str(" | ");
+        formatted_symbol.push_str("is_static: ");
+        formatted_symbol.push_str(&*symbol.is_static.to_string());
+        formatted_symbol.push_str(" | ");
         formatted_symbol.push_str(&*location_and_class.clone());
 
         println!("{}", formatted_symbol.clone());
-        let symbol_name: String = symbol.name.clone();
         symbols_table_dump.push_str(&*formatted_symbol.clone());
         symbols_table_dump.push_str("\n");
     }
@@ -529,7 +534,6 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
     println!("\n");
 
     //TODO add class to symbols table
-    //symbols_table.add();
     class_structure
 }
 
@@ -659,7 +663,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
     let mut parameter_arguments: Vec<String> = Vec::new();
     let mut static_namespace = method_namespace.clone();
     static_namespace.push_str("_static");
-    println!("Static method namespace: {}", static_namespace);
+    //println!("Static method namespace: {}", static_namespace);
 
     for index in 0..parameters.len()
     {
