@@ -3,7 +3,7 @@
 .equ false 0
 li $sp, 0x10fffffc
 
-call BasicArithmatic_BasicArithmatic_static_init
+call BasicArithmatic_static_init
 nop
 call BasicArithmatic_main
 nop

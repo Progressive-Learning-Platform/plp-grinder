@@ -17,6 +17,7 @@ public class BasicArithmatic
 	public static void main(String args)
 	{
 		StaticClass staticClassExample = new StaticClass();
+		
 		int a = 4;
 		int b = 2 + casualMethod();
 		if (true)

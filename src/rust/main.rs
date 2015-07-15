@@ -46,6 +46,7 @@ fn main()
             //TODO search for package declaration.
             let starting_point = find_next(&tokens, 0, "{").unwrap() + 1;
             let class_structure = parse_class(&tokens, starting_point, tokens[starting_point - 2].value.clone(), "".to_string(), true, &mut symbols_table, output_directory.clone());
+            // TODO: calculate actual file name
             let file_name = "output".to_string();
 
             // Print lexed output
@@ -65,7 +66,9 @@ fn main()
             let ref file_name = structure.2;
 
             let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
-            dump(&*(output_directory.clone() + &*file_name.clone() + ".asm"), code);
+            let mut plp = PLPWriter::new();
+            plp.code.push_str(&*code);
+            dump(&*(output_directory.clone() + &*file_name.clone() + ".asm"), plp.code);
             static_init_labels.push(static_init_label.clone());
         }
 
@@ -153,12 +156,7 @@ fn parse_command_arguments() -> (Vec<String>, String, PLPWriter)
 fn lex<'a>(source_file: String) -> Vec<Token<'a>>
 {
     let mut tokens: Vec<Token> = lex_file(&*source_file, false);
-    //tokens.print_to(lex_output_file, false);
-    tokens.print_to("output/stable/BasicArithmatic.java.lexed", false);
-
     remove_meta(&mut tokens);
-    //tokens.print_to(preprocessed_output_file, false);
-    tokens.print_to("output/stable/BasicArithmatic.java.preprocessed", false);
 
     tokens
 }
@@ -254,7 +252,25 @@ fn compile(tokens: &Vec<Token>, class_structure: &ClassStructure, symbols_table:
         compile_method_body(&tokens, range, method_symbol, &*namespace, registers, symbols_table, &mut plp);
     }
     plp.annotate("================ END Static Methods ================");
-    plp.label("end");
+
+    // Compile nested classes
+    for index in 0..class_structure.static_classes.len()
+    {
+        let ref class = class_structure.static_classes[index];
+
+        plp.println();
+        plp.indent_level += 1;
+        plp.annotate("========== Begin Nested Class Definition ===========");
+        // TODO: support nested static init blocks
+        let (code, static_init_label) = compile(tokens, class, symbols_table, &plp);
+        plp.code.push_str(&*code);
+        plp.annotate("=========== End Nested Class Definition ============");
+        plp.indent_level -= 1;
+
+    }
+    plp.annotate("================ END Static Methods ================");
+
+    // TODO: compile non-static classes
 
     (plp.code, static_init_label)
 }
