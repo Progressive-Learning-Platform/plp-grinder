@@ -1,7 +1,7 @@
-BasicArithmatic_BasicArithmatic_static:
+BasicArithmatic_static:
 	.space 1
 
-BasicArithmatic_BasicArithmatic_static_init:
+BasicArithmatic_static_init:
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
@@ -23,7 +23,7 @@ BasicArithmatic_BasicArithmatic_static_init:
 	return
 	nop
 
-BasicArithmatic_BasicArithmatic_local_init:
+BasicArithmatic_local_init:
 	return
 	nop
 
