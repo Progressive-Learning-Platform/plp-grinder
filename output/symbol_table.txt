@@ -1,17 +1,22 @@
-constant/BasicArithmatic_static/BasicArithmatic/0
-casualMethod/BasicArithmatic_casualMethod/BasicArithmatic/0
-args//BasicArithmatic/4
-a/BasicArithmatic_main_static/BasicArithmatic_main/0
-b/BasicArithmatic_main_static/BasicArithmatic_main/4
-c/BasicArithmatic_main_static/BasicArithmatic_main/8
-sum/BasicArithmatic_main_static/BasicArithmatic_main/12
-product/BasicArithmatic_main_static/BasicArithmatic_main/16
-difference/BasicArithmatic_main_static/BasicArithmatic_main/20
-addImmediate/BasicArithmatic_main_static/BasicArithmatic_main/24
-subImmediate/BasicArithmatic_main_static/BasicArithmatic_main/28
-multiplyImmediate/BasicArithmatic_main_static/BasicArithmatic_main/32
-parenthesis/BasicArithmatic_main_static/BasicArithmatic_main/36
-pemdasFull/BasicArithmatic_main_static/BasicArithmatic_main/40
-pemdasFullAlternate/BasicArithmatic_main_static/BasicArithmatic_main/44
-multipleParenthis/BasicArithmatic_main_static/BasicArithmatic_main/48
-main/BasicArithmatic_main/BasicArithmatic/0
+name: arithmatic              namespace: BasicArithmatic.StaticClass  is_static: false    InstancedMemory(0) | Class::Variable(BasicArithmatic)
+name: aNumber                 namespace: BasicArithmatic.StaticClass  is_static: false    InstancedMemory(4) | Class::Variable(int)
+name: aSecondNumber           namespace: BasicArithmatic.StaticClass  is_static: true     Memory(Label_name: BasicArithmatic_StaticClass_static/Offset: 0) | Class::Variable(int)
+name: StaticClass             namespace: BasicArithmatic              is_static: true     SymbolLocation::Structured | Class::Structure(class, 2)
+name: constant                namespace: BasicArithmatic              is_static: true     Memory(Label_name: BasicArithmatic_static/Offset: 0) | Class::Variable(int)
+name: casualMethod            namespace: BasicArithmatic              is_static: true     Memory(Label_name: BasicArithmatic_casualMethod/Offset: 0) | Class::Function(_,_,_,_)
+name: args                    namespace: BasicArithmatic              is_static: false    MethodArgument(4) | Class::Variable(String)
+name: a                       namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 0) | Class::Variable(int)
+name: b                       namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 4) | Class::Variable(int)
+name: c                       namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 8) | Class::Variable(int)
+name: sum                     namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 12) | Class::Variable(int)
+name: product                 namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 16) | Class::Variable(int)
+name: difference              namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 20) | Class::Variable(int)
+name: addImmediate            namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 24) | Class::Variable(int)
+name: subImmediate            namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 28) | Class::Variable(int)
+name: multiplyImmediate       namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 32) | Class::Variable(int)
+name: parenthesis             namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 36) | Class::Variable(int)
+name: pemdasFull              namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 40) | Class::Variable(int)
+name: pemdasFullAlternate     namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 44) | Class::Variable(int)
+name: multipleParenthis       namespace: BasicArithmatic_main         is_static: true     Memory(Label_name: BasicArithmatic_main_static/Offset: 48) | Class::Variable(int)
+name: main                    namespace: BasicArithmatic              is_static: true     Memory(Label_name: BasicArithmatic_main/Offset: 0) | Class::Function(_,_,_,_)
+name: BasicArithmatic         namespace:                              is_static: true     SymbolLocation::Structured | Class::Structure(class, 0)
