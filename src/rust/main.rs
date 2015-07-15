@@ -9,11 +9,13 @@ mod files;
 mod symbols;
 mod plp;
 mod compiler;
+mod parser;
 
 use std::env;
 use std::process;
 use std::vec::Vec;
 use tokens::*;
+use parser::*;
 use symbols::*;
 use symbols::symbol_table::*;
 use compiler::symbol_analysis::*;
@@ -41,6 +43,7 @@ fn main()
         for source_file in source_files
         {
             let tokens = lex(source_file);
+            //TODO search for package declaration.
             let starting_point = find_next(&tokens, 0, "{").unwrap() + 1;
             let class_structure = parse_class(&tokens, starting_point, tokens[starting_point - 2].value.clone(), "".to_string(), true, &mut symbols_table, output_directory.clone());
             let file_name = "output".to_string();
@@ -271,9 +274,6 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
     let mut current_local_class_variables = 0;
     let mut current_static_class_variables = 0;
 
-    class_structure.class_symbol = Symbol {namespace: namespace.clone(), is_static: is_class_static, name: class_name.clone(), symbol_class: SymbolClass::Structure("class".to_string()), location: SymbolLocation::Structured};
-    symbols_table.add(SymbolClass::Structure("class".to_string()), namespace.clone(), class_name.clone(), is_class_static, false, false, 0, 0, 0);
-
     //println!("\n<------------ Parse Class --------------->");
     let mut min_value = 0;
     let mut skip_amount = 0;
@@ -307,7 +307,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             {
                 panic!("Unsupported or Unexpected token: {} + {}.", tokens[tokens_index + 1].value, tokens[tokens_index + 1].name);
             }
-            else if tokens[tokens_index + skip_amount].name.starts_with("operator")
+            else if tokens[tokens_index + skip_amount].name.starts_with("operator") || tokens[tokens_index + skip_amount].value == ";"
             {
                 //println!("------Incoming Static Variable Decl!");
 
@@ -377,23 +377,11 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
             }
         }
         //Non-Static Variable/Method/Class
-        else if token.name == "type"
+        else if token.name == "type" || token.name == "identifier"
         {
             skip_amount = 2;
 
-            if tokens[tokens_index + skip_amount].name.starts_with("control")
-            {
-                //println!("------Incoming Non-Static Method Decl!");
-                let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
-                min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
-
-                let (method_name, argument_types) = parse_method(tokens, tokens_index, symbols_table, min_value, current_namespace.clone());
-
-                class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone(), Some(argument_types)));
-                min_value -= tokens_index + 1;
-                //check for control
-            }
-            else if tokens[tokens_index + skip_amount].name.starts_with("operator")
+            if tokens[tokens_index + skip_amount].name.starts_with("operator") || tokens[tokens_index + skip_amount].value == ";"
             {
                 //println!("------Incoming Non-Static Variable Decl!");
                 min_value =  find_next(tokens, tokens_index, ";").unwrap() + 1;
@@ -406,12 +394,26 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
 
                 min_value -= tokens_index + 1;
             }
+            else if tokens[tokens_index + skip_amount].name.starts_with("control")
+            {
+                //println!("------Incoming Non-Static Method Decl!");
+                let starting_point = find_next(tokens, tokens_index, "{").unwrap() + 1;
+                min_value = identify_body_bounds(tokens, starting_point, ("{", "}")).unwrap() + 1;
+
+                let (method_name, argument_types) = parse_method(tokens, tokens_index, symbols_table, min_value, current_namespace.clone());
+
+                class_structure.non_static_methods.push(MemberBlock (starting_point - 1, min_value, method_name.clone(), current_namespace.clone(), Some(argument_types)));
+                min_value -= tokens_index + 1;
+                //check for control
+            }
         }
         //println!("\tIndex: {} | Token -> {} : {}", tokens_index, token.value, token.name );
         //deal with parameters
     }
-    println!("\n\n=============================================================");
-    println!("<                 {} Overview                  >\n", class_name);
+    class_structure.class_symbol = Symbol {namespace: namespace.clone(), is_static: is_class_static, name: class_name.clone(), symbol_class: SymbolClass::Structure("class".to_string(), current_local_class_variables as usize), location: SymbolLocation::Structured};
+    symbols_table.add(SymbolClass::Structure("class".to_string(), current_local_class_variables as usize), namespace.clone(), class_name.clone(), is_class_static, false, false, 0, 0, 0);
+    //println!("\n\n=============================================================");
+    //println!("<                 {} Overview                  >\n", class_name);
     /*
     println!("<                 Class Structure Overview                  >");
     println!("Class Symbol: name {}, namespace {}, is_static {}\n", class_structure.class_symbol.name, class_structure.class_symbol.namespace, class_structure.class_symbol.is_static);
@@ -451,11 +453,12 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
         println!("Start/End {}/{}: {}", member_block.0, member_block.1, member_block.2);
     }
     */
-    println!("\n");
+    //println!("\n");
 
     let mut symbols_table_dump: String = String::new();
+    let mut formatted_symbol_vec: Vec<(String, String, String, String)> = Vec::new();
 
-    println!("<                    Symbol Table Overview                     >");
+    //println!("<                    Symbol Table Overview                     >");
     for symbol in symbols_table.children_scopes.iter()
     {
         let mut location_and_class: String = String::new();
@@ -507,31 +510,22 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
                     //location_and_class.push_str(&*memory_address.offset.to_string());
                     location_and_class.push_str(")");
                 },
-                SymbolClass::Structure(ref structure_type) =>
+                SymbolClass::Structure(ref structure_type, ref memory_size) =>
                 {
                     location_and_class.push_str("Class::Structure(");
                     location_and_class.push_str(&*structure_type.clone());
+                    location_and_class.push_str(", ");
+                    location_and_class.push_str(&*memory_size.to_string().clone());
                     location_and_class.push_str(")");
                 }
             };
-        let mut formatted_symbol: String = String::new();
-        formatted_symbol.push_str("name: ");
-        formatted_symbol.push_str(&*symbol.name.clone());
-        formatted_symbol.push_str(" | ");
-        formatted_symbol.push_str("namespace: ");
-        formatted_symbol.push_str(&*symbol.namespace.clone());
-        formatted_symbol.push_str(" | ");
-        formatted_symbol.push_str("is_static: ");
-        formatted_symbol.push_str(&*symbol.is_static.to_string());
-        formatted_symbol.push_str(" | ");
-        formatted_symbol.push_str(&*location_and_class.clone());
-
-        println!("{}", formatted_symbol.clone());
-        symbols_table_dump.push_str(&*formatted_symbol.clone());
-        symbols_table_dump.push_str("\n");
+        formatted_symbol_vec.push(("name: ".to_string() + &*symbol.name.clone(), "namespace: ".to_string() + &*symbol.namespace.clone(), "is_static: ".to_string() + &*symbol.is_static.to_string(), location_and_class.clone()));
     }
-    dump(&*(output_directory + "symbol_table.txt"), symbols_table_dump);
-    println!("\n");
+    formatted_symbol_vec.print_to(&*(output_directory + "symbol_table.txt"), false);
+    //symbols_table_dump.push_str(&*formatted_symbol.clone());
+    //symbols_table_dump.push_str("\n");
+    //dump(&*(output_directory + "symbol_table.txt"), symbols_table_dump);
+    //println!("\n");
 
     //TODO add class to symbols table
     class_structure
@@ -592,7 +586,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
             let parameter_name = tokens[index].value.clone();
 
-            parameters.push((parameter_name.clone(), tokens[index].value.clone()));
+            parameters.push((parameter_name.clone(), parameter_type));
             current_static_method_variables += 1;
             index += 1;
         }
