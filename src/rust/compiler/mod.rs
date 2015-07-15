@@ -146,7 +146,7 @@ pub fn compile_save_method_state(   method_symbol: &Symbol,
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(_, _, ref label_name, var_count) => (var_count as u16, label_name),
-            SymbolClass::Structure(ref subtype) => {
+            SymbolClass::Structure(ref subtype, _) => {
                     panic!("Expected Function found {}", subtype);
                 }
         };
@@ -204,7 +204,7 @@ pub fn compile_restore_method_state(method_symbol: &Symbol,
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(_, _, ref label_name, var_count) => (var_count as u16, label_name),
-            SymbolClass::Structure(ref subtype) => {
+            SymbolClass::Structure(ref subtype, _) => {
                     panic!("Expected Function found {}", subtype);
                 }
         };
@@ -1047,7 +1047,7 @@ pub fn compile_method_call( tokens: &Vec<Token>,
                 panic!("Expected Function found Variable");
             },
         SymbolClass::Function(ref return_type, _, _, _) => return_type,
-        SymbolClass::Structure(ref subtype) => {
+        SymbolClass::Structure(ref subtype, _) => {
                 panic!("Expected Function found {}", subtype);
             }
     };

@@ -45,7 +45,7 @@ pub fn get_static_allocation(method_symbol: &Symbol) -> (String, u16)
                     panic!("Expected Function found Variable");
                 },
             SymbolClass::Function(_, _, ref label_name, var_count) => (label_name.clone(), var_count as u16),
-            SymbolClass::Structure(ref subtype) => {
+            SymbolClass::Structure(ref subtype, _) => {
                     panic!("Expected Function found {}", subtype);
                 }
         }
@@ -60,7 +60,7 @@ pub fn get_return_type_of(method_symbol: &Symbol) -> String
                 panic!("Expected Function found Variable");
             },
         SymbolClass::Function(ref return_type, _, _, _) => return_type.clone(),
-        SymbolClass::Structure(ref subtype) => {
+        SymbolClass::Structure(ref subtype, _) => {
                 panic!("Expected Function found {}", subtype);
             }
     }
@@ -75,7 +75,7 @@ pub fn get_arg_signature_of(method_symbol: &Symbol) -> String
                 panic!("Expected Function found Variable");
             },
         SymbolClass::Function(_, ref arg_types, _, _) => arg_types,
-        SymbolClass::Structure(ref subtype) => {
+        SymbolClass::Structure(ref subtype, _) => {
                 panic!("Expected Function found {}", subtype);
             }
     };

@@ -64,8 +64,8 @@ pub enum SymbolClass
 	Function(String, Vec<String>, String, usize),
 
 	/// Includes class, enum, and interface
-	/// (subtype)
-	Structure(String),
+	/// (subtype, memory_size in words)
+	Structure(String, usize),
 }
 
 pub struct Symbol
