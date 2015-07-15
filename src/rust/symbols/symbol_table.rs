@@ -24,7 +24,7 @@ impl ClassStructure
     {
         ClassStructure
         {
-            class_symbol: Symbol {namespace: String::new(), is_static: false, name: String::new(), symbol_class: SymbolClass::Structure(String::new()), location: SymbolLocation::Structured},
+            class_symbol: Symbol {namespace: String::new(), is_static: false, name: String::new(), symbol_class: SymbolClass::Structure(String::new(), 0), location: SymbolLocation::Structured},
             static_variables: Vec::new(),
             static_methods: Vec::new(),
             static_classes: Vec::new(),
@@ -209,7 +209,7 @@ impl StaticSymbolTable for SymbolTable
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Structure(ref sub_type) => return Some((symbol).clone()),
+                                SymbolClass::Structure(ref sub_type, _) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -238,7 +238,7 @@ impl StaticSymbolTable for SymbolTable
         let mut location: SymbolLocation = match class
         {
             //TODO replace with storing logic
-            SymbolClass::Structure(ref sub_type) => SymbolLocation::Structured,
+            SymbolClass::Structure(ref sub_type, ref memory_size) => SymbolLocation::Structured,
             SymbolClass::Variable(ref variable_type) => match in_method
                 {
                     true => match is_parameter
