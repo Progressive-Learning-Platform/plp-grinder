@@ -611,6 +611,7 @@ pub fn compile_statement(   tokens: &Vec<Token>,
 
     while index < tokens.len()
     {
+        // TODO: handle arbitrary "new"
         let token = &tokens[index];
         println!("compile_statement: processing token at {} | {}: {}", index, token.value, token.name);
         if token.value == "{"
@@ -871,6 +872,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 
                             if accessing_namespace == namespace
                             {
+                                println!("\tcompile_symbol_sequence: symbol is first in sequence. Accessing from caller.");
                                 // Symbol is the first in it's chain, indicating that it belongs to the method's local class
                                 // Use base address from caller
                                 plp.annotate("The symbol is a field in a class");
@@ -883,6 +885,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             }
                             else
                             {
+                                println!("\tcompile_symbol_sequence: symbol is subsequent. Accessing from call_buffer.");
                                 // Symbol has a prefix, indicating that it belongs to it's owners's local class
                                 // Use base address from call_buffer
                                 plp.annotate("The symbol is a field in a class");
@@ -892,6 +895,23 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
 
                                 plp.annotate("Load the value of the variable from memory");
                                 plp.lw(target_register, offset, load_registers.0);
+                            }
+
+                            match address_register
+                            {
+                                Some(register_name) =>
+                                {
+                                    plp.annotate("Save the address of the symbol so that it can be assigned later");
+                                    // Load address into address_register
+                                    // Address is stored in load_registers.0 at an offset of *offset*
+                                    plp.li(load_registers.1, &*offset.to_string());
+                                    plp.addu(register_name, load_registers.0, load_registers.1);
+                                    valid_address = true;
+                                },
+                                None    =>
+                                {
+                                    /* DO NOTHING */
+                                },
                             }
                         },
                     SymbolLocation::MethodArgument(offset) => {
@@ -1105,6 +1125,16 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
         plp.push(target_register);
         // Continue parsing AFTER closing parenthesis
         index = end_index + 1;
+    }
+    else if token.value == "new"
+    {
+        // TODO: find next semicolon
+        // TODO: use tokens from index + 1 .. semicolon as the constructor namespace
+        // TODO: lookup the constructor
+        // TODO: allocate memory for the class instance
+        // TODO: initialize the object
+        // TODO: call super constructor
+        // TODO: push the pointer to the stack
     }
     else
     {
