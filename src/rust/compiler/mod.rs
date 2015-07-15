@@ -638,10 +638,22 @@ pub fn compile_statement(   tokens: &Vec<Token>,
         }
         else if token.name == "identifier"
         {
-            println!("compile_statement: found identifier {} | {}: {}", index, token.value, token.name);
-            // TODO: determine memory location of nested access
-            index = compile_symbol_sequence(tokens, index, namespace, registers.0, (registers.1, registers.2), target_register, Some(address_register), symbol_table, plp);
-            println!("compile_statement: new index is {}", index);
+            let lookahead_token = &tokens[index + 1];
+
+            if lookahead_token.name == "identifier"
+            {
+                // Token represents a user-defined type
+                // IGNORE
+                println!("compile_statement:ignoring token at {}", index);
+                index += 1;
+            }
+            else
+            {
+                println!("compile_statement: found identifier {} | {}: {}", index, token.value, token.name);
+                // TODO: determine memory location of nested access
+                index = compile_symbol_sequence(tokens, index, namespace, registers.0, (registers.1, registers.2), target_register, Some(address_register), symbol_table, plp);
+                println!("compile_statement: new index is {}", index);
+            }
         }
         else if token.name == "operator.unary"
         {
