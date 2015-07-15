@@ -1128,13 +1128,37 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
     }
     else if token.value == "new"
     {
-        // TODO: find next semicolon
-        // TODO: use tokens from index + 1 .. semicolon as the constructor namespace
+        // TODO: find next (
+        // TODO: use tokens prior to ( as the constructor namespace
         // TODO: lookup the constructor
         // TODO: allocate memory for the class instance
         // TODO: initialize the object
         // TODO: call super constructor
         // TODO: push the pointer to the stack
+        index += 1;
+        let token = &tokens[index];
+        println!("\tcompile_arithmetic_statement: Compiling constructor: {} | {}", namespace, token.value);
+        let new_class = symbols.lookup_structure(namespace, &*token.value).unwrap();
+
+        match new_class.symbol_class
+        {
+            SymbolClass::Structure(ref subtype) => { if subtype != "class" {panic!("Expected symbol to be of type class, but instead found type {}", subtype); } },
+            _ => panic!("Cannot invoke constructor of non-class symbol"),
+        };
+
+        plp.annotate("Constructor call");
+        // TODO: get the size of the object to be allocated
+        // A hard-coded size of 15 words is being used as a placeholder
+        plp.li("$a0", "15");
+        plp.call("malloc");
+        plp.push("$v0");
+
+        index += 1;
+        let token = &tokens[index];
+        if token.value != "(" { panic!("Scoped constructor calls are not currently supported. Expected ( found {}", token.value); }
+        index += 1;
+        let token = &tokens[index];
+        if token.value != ")" { panic!("Overloaded constructor calls are not currently supported. Expected ) found {}", token.value); }
     }
     else
     {
