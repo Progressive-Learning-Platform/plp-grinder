@@ -571,7 +571,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
         //TODO final parse_method
         panic!("in parse_method: currently not supporting final methods");
     }
-    if tokens[step].name == "type"
+    if tokens[step].name == "type" || tokens[step].name == "identifier"
     {
         method_return_type = tokens[step].value.clone();
         step += 1;
@@ -649,6 +649,16 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
             current_static_method_variables += 1;
             index = semicolon + 1;
         }
+        else if tokens[index].name == "identifier" && tokens[index + 1].name == "identifier"
+        {
+            let semicolon = find_next(tokens, index, ";").unwrap();
+            let (name, variable_type, is_static, symbol_class) = parse_variable(tokens, index);
+
+            static_variables.push((name.clone(), variable_type.clone(), is_static, symbol_class));
+
+            current_static_method_variables += 1;
+            index = semicolon + 1;
+        }
         else
         {
             index += 1;
@@ -667,7 +677,15 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
         //TODO Equation for parameter offset
         let variable_offset = (index) as u16;
-        symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), variable_name.clone(), true, true, false, 0, variable_offset, 0);
+        let occurs: bool = match symbols_table.lookup_variable(&*method_namespace.clone(), &*variable_name.clone())
+        {
+            Some(ref returned_variable) => true,
+            None => false,
+        };
+        if !occurs
+        {
+            symbols_table.add(SymbolClass::Variable(return_type.clone()), method_namespace.clone(), variable_name.clone(), true, true, false, 0, variable_offset, 0);
+        }
     }
 
     let mut parameter_arguments: Vec<String> = Vec::new();

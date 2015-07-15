@@ -1154,7 +1154,7 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
 
         match new_class.symbol_class
         {
-            SymbolClass::Structure(ref subtype) => { if subtype != "class" {panic!("Expected symbol to be of type class, but instead found type {}", subtype); } },
+            SymbolClass::Structure(ref subtype, _) => { if subtype != "class" {panic!("Expected symbol to be of type class, but instead found type {}", subtype); } },
             _ => panic!("Cannot invoke constructor of non-class symbol"),
         };
 
