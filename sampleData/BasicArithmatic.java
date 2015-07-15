@@ -2,6 +2,7 @@ public class BasicArithmatic
 {
 	private static class StaticClass
 	{
+		private BasicArithmatic arithmatic;
 		private int aNumber = 1;
 		private static int aSecondNumber = 2;
 	}
@@ -15,6 +16,7 @@ public class BasicArithmatic
 
 	public static void main(String args)
 	{
+		StaticClass staticClassExample = new StaticClass();
 		int a = 4;
 		int b = 2 + casualMethod();
 		if (true)
