@@ -760,4 +760,51 @@ BasicArithmatic_main:
 	sw $t1, 0($t0)
 	return
 	nop
+	BasicArithmatic_StaticClass_static:
+		.space 1
+
+	BasicArithmatic_StaticClass_static_init:
+		li $t1, call_buffer
+		lw $t1, 0($t1)
+		push $t1
+		li $t1, BasicArithmatic_StaticClass_static
+		lw $t3, 0($t1)
+		li $t2, 0
+		addu $t4, $t1, $t2
+		li $t1, call_buffer
+		sw $t3, 0($t1)
+		li $t2, call_buffer
+		pop $t1
+		sw $t1, 0($t2)
+		push $t4
+		li $t3, 2
+		push $t3
+		pop $t3
+		pop $t4
+		sw $t3, 0($t4)
+		return
+		nop
+
+	BasicArithmatic_StaticClass_local_init:
+		li $t1, call_buffer
+		lw $t1, 0($t1)
+		push $t1
+		li $t1, caller
+		lw $t1, 0($t1)
+		lw $t3, 0($t1)
+		li $t2, 0
+		addu $t4, $t1, $t2
+		li $t1, call_buffer
+		sw $t3, 0($t1)
+		li $t2, call_buffer
+		pop $t1
+		sw $t1, 0($t2)
+		push $t4
+		li $t3, 1
+		push $t3
+		pop $t3
+		pop $t4
+		sw $t3, 0($t4)
+		return
+		nop
 end:
