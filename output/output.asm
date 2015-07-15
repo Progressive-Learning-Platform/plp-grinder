@@ -760,6 +760,7 @@ BasicArithmatic_main:
 	sw $t1, 0($t0)
 	return
 	nop
+
 	BasicArithmatic_StaticClass_static:
 		.space 1
 
@@ -807,4 +808,3 @@ BasicArithmatic_main:
 		sw $t3, 0($t4)
 		return
 		nop
-end:

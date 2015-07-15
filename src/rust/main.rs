@@ -65,7 +65,6 @@ fn main()
             let (code, static_init_label) = compile(&tokens, &class_structure, &symbols_table, &base_writter);
             let mut plp = PLPWriter::new();
             plp.code.push_str(&*code);
-            plp.label("end");
             dump(&*(output_directory.clone() + &*file_name.clone() + ".asm"), plp.code);
             static_init_labels.push(static_init_label.clone());
         }
