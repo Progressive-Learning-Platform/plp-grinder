@@ -17,8 +17,9 @@ public class BasicArithmatic
 	public static void main(String args)
 	{
 		StaticClass staticClassExample = new StaticClass();
-		
-		int a = 4;
+		staticClassExample.aNumber = 20;
+
+		int a = staticClassExample.aNumber - 16;
 		int b = 2 + casualMethod();
 		if (true)
 		{
