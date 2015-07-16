@@ -4,6 +4,28 @@ use symbols::symbol_table::*;
 use support::*;
 use plp::PLPWriter;
 
+pub fn get_accessor_namespace(symbol: &Symbol, symbol_table: &StaticSymbolTable) -> Option<String>
+{
+    match symbol.symbol_class
+    {
+        SymbolClass::Variable(ref variable_type) => {
+            let potential_matches = symbol_table.lookup_by_name(&*variable_type);
+            if potential_matches.is_empty() { return None; }
+            let type_symbol = potential_matches[0];
+
+            let mut namespace = type_symbol.namespace.clone();
+            namespace.push_str("_");
+            namespace.push_str(&*type_symbol.name);
+
+            return Some(namespace);
+        },
+        SymbolClass::Structure(_, _) => {
+            panic!("get_accessor_namespace: Structure access not currently supported");
+        },
+        SymbolClass::Function(_, _, _, _) => { panic!("Expected Variable or Structure, found Function"); },
+    };
+}
+
 /// @return: (static_memory_label, static_init_label, local_init_label)
 pub fn get_class_labels(class_symbol: &Symbol) -> (String, String, String)
 {

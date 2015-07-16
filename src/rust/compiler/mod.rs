@@ -800,6 +800,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     plp.annotate_newline();
 
     let mut accessing_namespace = namespace.to_string();
+    let mut access_error: Option<String> = None;
     while index < (tokens.len() - 1)
     {
         let token = &tokens[index];
@@ -961,7 +962,12 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                         },
                 };
 
-                accessing_namespace = symbol.namespace.clone();
+
+                match get_accessor_namespace(symbol, symbols)
+                {
+                    Some(namespace) => {accessing_namespace = namespace.clone();},
+                    None => {access_error = Some(format!("No type found for {} : {}", token.name, token.value));},
+                };
 
                 index += 1;
             }
@@ -976,6 +982,11 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
         }
         else if token.value == "."
         {
+            match access_error
+            {
+                Some(message) => { panic!("{}", message); },
+                None => {},
+            };
             // Access references are handled when it's children are parsed (in the if block above), so skip this token
             index += 1;
             continue;
@@ -1165,12 +1176,15 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
         plp.call("malloc");
         plp.push("$v0");
 
+        //let (return_type, new_index) = compile_method_call(tokens, index, &*new_class.namespace, namespace, temp_register, load_registers, symbols, plp);
+
         index += 1;
         let token = &tokens[index];
         if token.value != "(" { panic!("Scoped constructor calls are not currently supported. Expected ( found {}", token.value); }
         index += 1;
         let token = &tokens[index];
         if token.value != ")" { panic!("Overloaded constructor calls are not currently supported. Expected ) found {}", token.value); }
+        index += 1;
     }
     else
     {
