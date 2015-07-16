@@ -520,10 +520,16 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
                     location_and_class.push_str(&*variable_type.clone());
                     location_and_class.push_str(")");
                 },
-                SymbolClass::Function(_, _, _, _) =>
+                SymbolClass::Function(ref return_type, _, ref static_memory_label, ref static_memory_size) =>
                 {
-                    location_and_class.push_str("Class::Function(_,_,_,_");
-                    //location_and_class.push_str(&*memory_address.offset.to_string());
+                    location_and_class.push_str("Class::Function(");
+                    location_and_class.push_str(&*return_type.clone());
+                    location_and_class.push_str(", ");
+                    location_and_class.push_str("_");
+                    location_and_class.push_str(", ");
+                    location_and_class.push_str(&*static_memory_label.clone());
+                    location_and_class.push_str(", ");
+                    location_and_class.push_str(&*static_memory_size.to_string());
                     location_and_class.push_str(")");
                 },
                 SymbolClass::Structure(ref structure_type, ref memory_size) =>
@@ -549,9 +555,7 @@ fn parse_class(tokens: &Vec<Token>, start_index: usize, class_name: String, name
 
 fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut SymbolTable, end_index: usize, current_namespace: String) -> (String, Vec<String>)
 {
-    //TODO parse if/else, while, for
-    //TODO add bool for if expression
-    let mut method_namespace = current_namespace.replace(".", "_").clone();
+    let mut method_namespace = current_namespace.clone();
     let mut parameters: Vec<(String, String)> = Vec::new();
     let mut static_variables: Vec<(String, String, bool, SymbolClass)> = Vec::new();
     let mut current_static_method_variables = 0;
@@ -666,7 +670,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
 
     }
 
-    method_namespace.push_str("_");
+    method_namespace.push_str(".");
     method_namespace.push_str(&*method_name.clone());
     //Add body variables
     for index in 0..static_variables.len()
@@ -700,7 +704,7 @@ fn parse_method(tokens: &Vec<Token>, start_index: usize, symbols_table: &mut Sym
     }
 
     //Add function symbol
-    symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments.clone(), static_namespace.clone(), static_variables.len()), current_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
+    symbols_table.add(SymbolClass::Function(method_return_type.clone(), parameter_arguments.clone(), static_namespace.clone().replace(".", "_"), static_variables.len()), current_namespace.clone(), method_name.clone(), is_method_static, false, false, 0, (static_variables.len()) as u16, 0);
     (method_name, parameter_arguments)
 }
 
