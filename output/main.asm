@@ -5,6 +5,9 @@ li $sp, 0x10fffffc
 
 call BasicArithmatic_static_init
 nop
+call init_heap
+nop
+
 call BasicArithmatic_main
 nop
 j end
