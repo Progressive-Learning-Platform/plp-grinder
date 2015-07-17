@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::File;
 use std::path::Path;
 use std::error::Error;
@@ -28,6 +29,11 @@ pub fn dump(file_path: &str, data: String)
     let path = Path::new(file_path);
     let display = path.display();
 
+    match fs::create_dir_all(path.parent().unwrap()) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
+
     let mut file = match File::create(&path)
     {
         Err(why) => panic!("couldn't create {}: {}", display, Error::description(&why)),
@@ -39,4 +45,29 @@ pub fn dump(file_path: &str, data: String)
         Err(why) => {panic!("couldn't write to {}: {}", display, Error::description(&why))},
         Ok(_) => println!("successfully output to {}", display),
     }
+}
+
+pub fn create_dir(dir_path: &str)
+{
+    match fs::create_dir(dir_path) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
+}
+
+///
+pub fn delete_file(file_path: &str)
+{
+    match fs::remove_file(file_path) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
+}
+
+pub fn delete_directory_full(dir_path: &str)
+{
+    match fs::remove_dir_all(dir_path) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
 }

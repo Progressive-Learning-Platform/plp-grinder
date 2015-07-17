@@ -2,19 +2,20 @@ use symbols::*;
 use support::*;
 
 //TODO change String to Symbol
-///start, end, name, namespace
+///start, end, name, namespace, argument types (if applicable)
 pub struct MemberBlock (pub usize, pub usize, pub String, pub String, pub Option<Vec<String>>);
 
 pub struct ClassStructure
 {
     //TODO add constructor vector
+    pub class_symbol: Symbol,
     pub static_variables: Vec<MemberBlock>,
     pub static_methods: Vec<MemberBlock>,
-    pub static_classes: Vec<MemberBlock>,
+    pub static_classes: Vec<ClassStructure>,
 
     pub non_static_variables: Vec<MemberBlock>,
     pub non_static_methods: Vec<MemberBlock>,
-    pub non_static_classes: Vec<MemberBlock>,
+    pub non_static_classes: Vec<ClassStructure>,
 }
 
 impl ClassStructure
@@ -23,6 +24,7 @@ impl ClassStructure
     {
         ClassStructure
         {
+            class_symbol: Symbol {namespace: String::new(), is_static: false, name: String::new(), symbol_class: SymbolClass::Structure(String::new(), 0), location: SymbolLocation::Structured},
             static_variables: Vec::new(),
             static_methods: Vec::new(),
             static_classes: Vec::new(),
@@ -84,13 +86,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace
 	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect("_");
+            current_namespace = namespaces.connect(".");
 
             if namespaces.is_empty()
             {
@@ -125,13 +127,13 @@ impl StaticSymbolTable for SymbolTable
 	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol>
     {
         //TODO use argument_types
-        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect("_");
+            current_namespace = namespaces.connect(".");
 
             if namespaces.is_empty()
             {
@@ -145,10 +147,29 @@ impl StaticSymbolTable for SymbolTable
                     {
                         if symbol.name == name
                         {
+                            //check with starts_with
+                            //Add suffix
                             match symbol.symbol_class
                             {
-                                SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) => return Some((symbol).clone()),
-                                _ => continue,
+                                SymbolClass::Function(ref return_type, ref arguments, ref static_label, static_length) =>
+                                {
+                                    if arguments.len() == argument_types.len()
+                                    {
+                                        for index in 0..arguments.len()
+                                        {
+                                            if arguments[index] != argument_types[index]
+                                            {
+                                                continue
+                                            }
+                                        }
+                                        return Some((symbol).clone())
+                                    }
+                                    else
+                                    {
+                                        continue
+                                    }
+                                }
+                                _ => {continue}
                             };
                         }
                     }
@@ -166,13 +187,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
 	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol)>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('_').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect("_");
+            current_namespace = namespaces.connect(".");
 
             if namespaces.is_empty()
             {
@@ -188,7 +209,7 @@ impl StaticSymbolTable for SymbolTable
                         {
                             match symbol.symbol_class
                             {
-                                SymbolClass::Structure(ref sub_type) => return Some((symbol).clone()),
+                                SymbolClass::Structure(ref sub_type, _) => return Some((symbol).clone()),
                                 _ => continue,
                             };
                         }
@@ -217,7 +238,7 @@ impl StaticSymbolTable for SymbolTable
         let mut location: SymbolLocation = match class
         {
             //TODO replace with storing logic
-            SymbolClass::Structure(ref sub_type) => SymbolLocation::Structured,
+            SymbolClass::Structure(ref sub_type, ref memory_size) => SymbolLocation::Structured,
             SymbolClass::Variable(ref variable_type) => match in_method
                 {
                     true => match is_parameter

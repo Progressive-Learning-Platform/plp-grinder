@@ -1,19 +1,31 @@
-.org 0x10000000
-.equ true 1
-.equ false 0
-li $sp, 0x10fffffc
+BasicArithmatic_static:
+	.space 1
 
-call BasicArithmatic_main
-nop
-j end
-nop
+BasicArithmatic_static_init:
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_static
+	lw $t3, 0($t1)
+	li $t2, 0
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 10
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	return
+	nop
 
-call_buffer:
-	.word 0
-caller:
-	.word 0
-arg_stack:
-	.word 0
+BasicArithmatic_local_init:
+	return
+	nop
 
 BasicArithmatic_casualMethod_static:
 	.space 0
@@ -47,7 +59,7 @@ BasicArithmatic_casualMethod:
 	nop
 
 BasicArithmatic_main_static:
-	.space 12
+	.space 17
 BasicArithmatic_main:
 	li $t0, BasicArithmatic_main_static
 	lw $t1, 0($t0)
@@ -74,6 +86,16 @@ BasicArithmatic_main:
 	push $t1
 	lw $t1, 44($t0)
 	push $t1
+	lw $t1, 48($t0)
+	push $t1
+	lw $t1, 52($t0)
+	push $t1
+	lw $t1, 56($t0)
+	push $t1
+	lw $t1, 60($t0)
+	push $t1
+	lw $t1, 64($t0)
+	push $t1
 	li $t0, arg_stack
 	lw $t1, 0($t0)
 	push $t1
@@ -97,7 +119,34 @@ BasicArithmatic_main:
 	pop $t1
 	sw $t1, 0($t2)
 	push $t4
-	li $t3, 4
+	li $a0, 15
+	call malloc
+	nop
+	push $v0
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 0($t1)
+	li $t2, 0
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t2, 4
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 20
 	push $t3
 	pop $t3
 	pop $t4
@@ -115,31 +164,13 @@ BasicArithmatic_main:
 	pop $t1
 	sw $t1, 0($t2)
 	push $t4
-	li $t3, 2
-	push $t3
-	li $t1, call_buffer
-	lw $t1, 0($t1)
-	push $t1
-	call BasicArithmatic_casualMethod
+	li $a0, 15
+	call malloc
 	nop
-	move $t3, $v0
-	li $t2, call_buffer
-	pop $t1
-	sw $t1, 0($t2)
-	push $t3
-	pop $t3
-	pop $t0
-	addu $t3, $t0, $t3
-	push $t3
+	push $v0
 	pop $t3
 	pop $t4
 	sw $t3, 0($t4)
-	li $t3, true
-	push $t3
-	pop $t3
-	push $t3
-	pop $t3
-	beq $t3, $0, BasicArithmatic_main_conditional0_else0
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
@@ -149,21 +180,22 @@ BasicArithmatic_main:
 	addu $t4, $t1, $t2
 	li $t1, call_buffer
 	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t2, 4
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
 	push $t4
-	li $t3, 1
+	li $t3, 10
 	push $t3
 	pop $t3
 	pop $t4
-	lw $t0, 0($t4)
-	addu $t3, $t3, $t0
 	sw $t3, 0($t4)
-	j BasicArithmatic_main_conditional0_end
-	nop
-	BasicArithmatic_main_conditional0_else0:
-	BasicArithmatic_main_conditional0_end:
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
@@ -177,31 +209,34 @@ BasicArithmatic_main:
 	pop $t1
 	sw $t1, 0($t2)
 	push $t4
-	li $t1, call_buffer
-	lw $t1, 0($t1)
-	push $t1
-	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
-	li $t1, call_buffer
-	sw $t3, 0($t1)
-	li $t2, call_buffer
-	pop $t1
-	sw $t1, 0($t2)
-	push $t3
-	li $t1, call_buffer
-	lw $t1, 0($t1)
-	push $t1
-	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
-	li $t1, call_buffer
-	sw $t3, 0($t1)
-	li $t2, call_buffer
-	pop $t1
-	sw $t1, 0($t2)
-	push $t3
+	li $a0, 15
+	call malloc
+	nop
+	push $v0
 	pop $t3
-	pop $t0
-	addu $t3, $t0, $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 8($t1)
+	li $t2, 8
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t2, 4
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 50
 	push $t3
 	pop $t3
 	pop $t4
@@ -226,6 +261,11 @@ BasicArithmatic_main:
 	lw $t3, 0($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
@@ -237,13 +277,38 @@ BasicArithmatic_main:
 	lw $t3, 4($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 8($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	lw $t3, 4($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
 	push $t3
 	pop $t3
 	pop $t0
-	mullo $t3, $t0, $t3
+	addu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t0
+	addu $t3, $t0, $t3
 	push $t3
 	pop $t3
 	pop $t4
@@ -268,20 +333,16 @@ BasicArithmatic_main:
 	lw $t3, 0($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
-	li $t2, call_buffer
-	pop $t1
-	sw $t1, 0($t2)
-	push $t3
 	li $t1, call_buffer
 	lw $t1, 0($t1)
-	push $t1
-	li $t1, BasicArithmatic_main_static
 	lw $t3, 4($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
+	push $t3
+	li $t3, 16
 	push $t3
 	pop $t3
 	pop $t0
@@ -303,18 +364,19 @@ BasicArithmatic_main:
 	pop $t1
 	sw $t1, 0($t2)
 	push $t4
+	li $t3, 2
+	push $t3
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
-	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
+	call BasicArithmatic_casualMethod
+	nop
+	move $t3, $v0
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
-	push $t3
-	li $t3, 2
 	push $t3
 	pop $t3
 	pop $t0
@@ -323,6 +385,36 @@ BasicArithmatic_main:
 	pop $t3
 	pop $t4
 	sw $t3, 0($t4)
+	li $t3, true
+	push $t3
+	pop $t3
+	push $t3
+	pop $t3
+	beq $t3, $0, BasicArithmatic.main_conditional0_else0
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
+	li $t2, 20
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 1
+	push $t3
+	pop $t3
+	pop $t4
+	lw $t0, 0($t4)
+	addu $t3, $t3, $t0
+	sw $t3, 0($t4)
+	j BasicArithmatic.main_conditional0_end
+	nop
+	BasicArithmatic.main_conditional0_else0:
+	BasicArithmatic.main_conditional0_end:
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
@@ -339,7 +431,7 @@ BasicArithmatic_main:
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
-	li $t1, BasicArithmatic_main_static
+	li $t1, BasicArithmatic_static
 	lw $t3, 0($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
@@ -347,15 +439,59 @@ BasicArithmatic_main:
 	pop $t1
 	sw $t1, 0($t2)
 	push $t3
-	li $t3, 2
-	push $t3
-	pop $t3
-	pop $t0
-	subu $t3, $t0, $t3
-	push $t3
 	pop $t3
 	pop $t4
 	sw $t3, 0($t4)
+	li $t3, false
+	push $t3
+	pop $t3
+	push $t3
+	pop $t3
+	beq $t3, $0, BasicArithmatic.main_conditional1_else0
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 24($t1)
+	li $t2, 24
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 89
+	push $t3
+	pop $t3
+	pop $t4
+	lw $t0, 0($t4)
+	addu $t3, $t3, $t0
+	sw $t3, 0($t4)
+	j BasicArithmatic.main_conditional1_end
+	nop
+	BasicArithmatic.main_conditional1_else0:
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 24($t1)
+	li $t2, 24
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t3, 1
+	push $t3
+	pop $t3
+	pop $t4
+	lw $t0, 0($t4)
+	addu $t3, $t3, $t0
+	sw $t3, 0($t4)
+	BasicArithmatic.main_conditional1_end:
 	li $t1, call_buffer
 	lw $t1, 0($t1)
 	push $t1
@@ -373,18 +509,27 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
+	lw $t3, 16($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
 	pop $t1
 	sw $t1, 0($t2)
 	push $t3
-	li $t3, 0x05
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
 	push $t3
 	pop $t3
 	pop $t0
-	mullo $t3, $t0, $t3
+	addu $t3, $t0, $t3
 	push $t3
 	pop $t3
 	pop $t4
@@ -406,7 +551,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
+	lw $t3, 16($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -417,18 +562,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
-	li $t1, call_buffer
-	sw $t3, 0($t1)
-	li $t2, call_buffer
-	pop $t1
-	sw $t1, 0($t2)
-	push $t3
-	li $t1, call_buffer
-	lw $t1, 0($t1)
-	push $t1
-	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
+	lw $t3, 20($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -437,13 +571,7 @@ BasicArithmatic_main:
 	push $t3
 	pop $t3
 	pop $t0
-	addu $t3, $t0, $t3
-	push $t3
-	pop $t3
-	push $t3
-	pop $t3
-	pop $t0
-	addu $t3, $t0, $t3
+	mullo $t3, $t0, $t3
 	push $t3
 	pop $t3
 	pop $t4
@@ -465,7 +593,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
+	lw $t3, 16($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -476,7 +604,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
+	lw $t3, 20($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -485,21 +613,7 @@ BasicArithmatic_main:
 	push $t3
 	pop $t3
 	pop $t0
-	addu $t3, $t0, $t3
-	push $t3
-	pop $t3
-	push $t3
-	li $t3, 3
-	push $t3
-	li $t3, 10
-	push $t3
-	pop $t3
-	pop $t0
 	subu $t3, $t0, $t3
-	push $t3
-	pop $t3
-	pop $t0
-	mullo $t3, $t0, $t3
 	push $t3
 	pop $t3
 	pop $t4
@@ -521,7 +635,106 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
+	lw $t3, 16($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t3, 2
+	push $t3
+	pop $t3
+	pop $t0
+	addu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 44($t1)
+	li $t2, 44
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 16($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t3, 2
+	push $t3
+	pop $t3
+	pop $t0
+	subu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 48($t1)
+	li $t2, 48
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t3, 0x05
+	push $t3
+	pop $t3
+	pop $t0
+	mullo $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 52($t1)
+	li $t2, 52
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 16($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -532,7 +745,122 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
+	lw $t3, 16($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	pop $t3
+	pop $t0
+	addu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	push $t3
+	pop $t3
+	pop $t0
+	addu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 56($t1)
+	li $t2, 56
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 16($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	pop $t3
+	pop $t0
+	addu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	push $t3
+	li $t3, 3
+	push $t3
+	li $t3, 10
+	push $t3
+	pop $t3
+	pop $t0
+	subu $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t0
+	mullo $t3, $t0, $t3
+	push $t3
+	pop $t3
+	pop $t4
+	sw $t3, 0($t4)
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 60($t1)
+	li $t2, 60
+	addu $t4, $t1, $t2
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t4
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 16($t1)
+	li $t1, call_buffer
+	sw $t3, 0($t1)
+	li $t2, call_buffer
+	pop $t1
+	sw $t1, 0($t2)
+	push $t3
+	li $t1, call_buffer
+	lw $t1, 0($t1)
+	push $t1
+	li $t1, BasicArithmatic_main_static
+	lw $t3, 20($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -564,8 +892,8 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 44($t1)
-	li $t2, 44
+	lw $t3, 64($t1)
+	li $t2, 64
 	addu $t4, $t1, $t2
 	li $t1, call_buffer
 	sw $t3, 0($t1)
@@ -579,7 +907,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 0($t1)
+	lw $t3, 16($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -590,7 +918,7 @@ BasicArithmatic_main:
 	lw $t1, 0($t1)
 	push $t1
 	li $t1, BasicArithmatic_main_static
-	lw $t3, 4($t1)
+	lw $t3, 20($t1)
 	li $t1, call_buffer
 	sw $t3, 0($t1)
 	li $t2, call_buffer
@@ -640,6 +968,16 @@ BasicArithmatic_main:
 	sw $t1, 0($t0)
 	li $t0, BasicArithmatic_main_static
 	pop $t1
+	sw $t1, 64($t0)
+	pop $t1
+	sw $t1, 60($t0)
+	pop $t1
+	sw $t1, 56($t0)
+	pop $t1
+	sw $t1, 52($t0)
+	pop $t1
+	sw $t1, 48($t0)
+	pop $t1
 	sw $t1, 44($t0)
 	pop $t1
 	sw $t1, 40($t0)
@@ -665,4 +1003,64 @@ BasicArithmatic_main:
 	sw $t1, 0($t0)
 	return
 	nop
-end:
+
+	BasicArithmatic_StaticClass_static:
+		.space 1
+
+	BasicArithmatic_StaticClass_static_init:
+		li $t1, call_buffer
+		lw $t1, 0($t1)
+		push $t1
+		li $t1, BasicArithmatic_StaticClass_static
+		lw $t3, 0($t1)
+		li $t2, 0
+		addu $t4, $t1, $t2
+		li $t1, call_buffer
+		sw $t3, 0($t1)
+		li $t2, call_buffer
+		pop $t1
+		sw $t1, 0($t2)
+		push $t4
+		li $t3, 2
+		push $t3
+		pop $t3
+		pop $t4
+		sw $t3, 0($t4)
+		return
+		nop
+
+	BasicArithmatic_StaticClass_local_init:
+		li $t1, call_buffer
+		lw $t1, 0($t1)
+		push $t1
+		li $t1, caller
+		lw $t1, 0($t1)
+		lw $t3, 0($t1)
+		li $t2, 0
+		addu $t4, $t1, $t2
+		li $t1, call_buffer
+		sw $t3, 0($t1)
+		li $t2, call_buffer
+		pop $t1
+		sw $t1, 0($t2)
+		li $t1, call_buffer
+		lw $t1, 0($t1)
+		push $t1
+		li $t1, caller
+		lw $t1, 0($t1)
+		lw $t3, 4($t1)
+		li $t2, 4
+		addu $t4, $t1, $t2
+		li $t1, call_buffer
+		sw $t3, 0($t1)
+		li $t2, call_buffer
+		pop $t1
+		sw $t1, 0($t2)
+		push $t4
+		li $t3, 1
+		push $t3
+		pop $t3
+		pop $t4
+		sw $t3, 0($t4)
+		return
+		nop

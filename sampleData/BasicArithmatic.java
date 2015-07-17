@@ -1,6 +1,13 @@
 public class BasicArithmatic
 {
-	private static final int constant = 10;
+	private static class StaticClass
+	{
+		private BasicArithmatic arithmatic;
+		private int aNumber = 1;
+		private static int aSecondNumber = 2;
+	}
+
+	private static int constant = 10;
 
 	public static int casualMethod()
 	{
@@ -9,11 +16,28 @@ public class BasicArithmatic
 
 	public static void main(String args)
 	{
-		int a = 4;
+		StaticClass staticClassExample = new StaticClass();
+		staticClassExample.aNumber = 20;
+		StaticClass staticClassinstance2 = new StaticClass();
+		staticClassinstance2.aNumber = 10;
+		StaticClass staticClassinstance3 = new StaticClass();
+		staticClassinstance3.aNumber = 50;
+
+		int first = staticClassExample.aNumber + staticClassinstance2.aNumber + staticClassinstance3.aNumber;
+		int a = staticClassExample.aNumber - 16;
 		int b = 2 + casualMethod();
 		if (true)
 		{
 			b += 1;
+		}
+		int c = constant;
+		if (false)
+		{
+			c += 89;
+		}
+		else
+		{
+			c += 1;
 		}
 		int sum = a + b;
 		int product = a*b;
