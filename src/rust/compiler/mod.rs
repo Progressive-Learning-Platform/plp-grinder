@@ -1,12 +1,13 @@
 pub mod symbol_analysis;
 
 use std::vec::Vec;
-use compiler::symbol_analysis::*;
 use tokens::*;
-use symbols::*;
-use symbols::symbol_table::*;
 use support::*;
+use symbols::*;
 use plp::PLPWriter;
+use symbols::commons::*;
+use symbols::symbol_table::*;
+use compiler::symbol_analysis::*;
 
 // TODO: compile with lwm and swm instead of li $t0, label; lw $t0, 0($t0)
 
@@ -59,10 +60,7 @@ pub fn compile_method_body( tokens: &Vec<Token>,
     compile_save_method_state(method_symbol, (registers.0, registers.1), plp);
 
     // Get namespace of method block (the method's namespace + the method's name)
-    let mut inner_namespace = String::new();
-    inner_namespace.push_str(current_namespace);
-    inner_namespace.push_str("_");
-    inner_namespace.push_str(&*method_symbol.name);
+    let inner_namespace = concatenate_namespace(current_namespace, &*method_symbol.name);
 
     // Compile method body
     println!("compile_method_body: Start: {} End: {}", start_index, end_index);
@@ -104,6 +102,9 @@ pub fn compile_program_header(plp: &mut PLPWriter, main_label: &str, static_init
     {
         plp.call(&*static_init_label);
     }
+    plp.annotate("Initialize the heap");
+    plp.call("init_heap");
+    plp.println();
 
     // Program execution
     plp.annotate("Run main, then stop the program");
@@ -805,6 +806,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
     {
         let token = &tokens[index];
         println!("\tcompile_symbol_sequence: processing token at {} | {}: {}", index, token.value, token.name);
+        println!("\tcompile_symbol_sequence: accessing_namespace is {}", accessing_namespace);
 
         // PRESUMPTION: if this is the first symbol, $this will be stored in the call_buffer, unless the scope is static, in which case $0 will be in the call_buffer
         // PRESUMPTION: if this symbol is following an accessor (i.e. it is not the first symbol), then the previous symbol (i.e. the "caller") will be in the call_buffer
@@ -834,9 +836,7 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                 match symbols.lookup_structure(&*accessing_namespace, &*return_type)
                 {
                     Some(return_symbol) => {
-                        accessing_namespace = return_symbol.namespace.clone();
-                        accessing_namespace.push_str("_");
-                        accessing_namespace.push_str(&*return_symbol.name);
+                        accessing_namespace = concatenate_namespace(&*return_symbol.namespace, &*return_symbol.name);
                     },
                     None => { println!("compile_symbol_sequence: no match found for {} in {}", &*return_type, &*accessing_namespace); },
                 };
@@ -955,10 +955,8 @@ pub fn compile_symbol_sequence( tokens: &Vec<Token>,
                             }
                         },
                     SymbolLocation::Structured => {
-                            // Update accessing_namespace
-                            accessing_namespace.push_str("_");
-                            accessing_namespace.push_str(&*symbol.name.clone());
-                            println!("\tcompile_symbol_sequence: found {}: Strcutured", &*token.value);
+                            // TODO: Update accessing_namespace
+                            panic!("\tcompile_symbol_sequence: Explicit namespaces not currently supported. Found {}", &*token.value)
                         },
                 };
 
@@ -1121,6 +1119,12 @@ pub fn compile_method_call( tokens: &Vec<Token>,
     return (return_type.to_string(), end_index + 1);
 }
 
+pub enum ArithmeticNode<'a>
+{
+    Evaluation(String),
+    Operator(&'a Token<'a>),
+}
+
 /// Compiles one or more symbol sequences linked by zero or more operators.
 /// @return (result_type, end_index)
 pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
@@ -1190,6 +1194,9 @@ pub fn compile_arithmetic_statement(tokens: &Vec<Token>,            // used
     {
         index = compile_evaluation(tokens, index, namespace, temp_register, load_registers, target_register, symbols, plp);
     	plp.push(target_register);
+
+        let mut nodes: Vec<ArithmeticNode> = Vec::new();
+
     }
 
     // Recurse until arithmetic sequence ends (e.g. sees a non-oporator pattern)

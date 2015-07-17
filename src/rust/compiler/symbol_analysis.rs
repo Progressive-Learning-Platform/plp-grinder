@@ -1,8 +1,9 @@
 use tokens::*;
 use symbols::*;
-use symbols::symbol_table::*;
 use support::*;
 use plp::PLPWriter;
+use symbols::commons::*;
+use symbols::symbol_table::*;
 
 pub fn get_accessor_namespace(symbol: &Symbol, symbol_table: &StaticSymbolTable) -> Option<String>
 {
@@ -13,10 +14,7 @@ pub fn get_accessor_namespace(symbol: &Symbol, symbol_table: &StaticSymbolTable)
             if potential_matches.is_empty() { return None; }
             let type_symbol = potential_matches[0];
 
-            let mut namespace = type_symbol.namespace.clone();
-            namespace.push_str("_");
-            namespace.push_str(&*type_symbol.name);
-
+            let namespace = concatenate_namespace(&*type_symbol.namespace, &*type_symbol.name);
             return Some(namespace);
         },
         SymbolClass::Structure(_, _) => {
