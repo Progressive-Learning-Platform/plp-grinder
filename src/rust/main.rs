@@ -31,10 +31,13 @@ fn main()
 
     // TODO: support multiple source files
     let source_file = &*source_files[0].clone();
-    let was_compile_successful = compile_oracle(&["javac", source_file]);
+    create_dir("compiled");
+    let was_compile_successful = compile_oracle(&["javac", "-d", "compiled", source_file]);
 
     if was_compile_successful
     {
+        delete_directory_full("compiled");
+
         let mut static_init_labels: Vec<String> = Vec::new();
         let mut symbols_table: SymbolTable = SymbolTable::new();
         let mut structures: Vec<(Vec<Token>, ClassStructure, String)> = Vec::new();
@@ -791,7 +794,6 @@ pub fn compile_oracle(args: &[&str]) -> bool
     if was_compile_successful
     {
         println!("Compile Successful!");
-        delete_file(&*args[args.len() - 1].replace(".java", ".class"));
     }
     else
     {

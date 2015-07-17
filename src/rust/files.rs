@@ -47,12 +47,26 @@ pub fn dump(file_path: &str, data: String)
     }
 }
 
+pub fn create_dir(dir_path: &str)
+{
+    match fs::create_dir(dir_path) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
+}
+
 ///
 pub fn delete_file(file_path: &str)
 {
-    let path = Path::new(file_path);
-
     match fs::remove_file(file_path) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
+}
+
+pub fn delete_directory_full(dir_path: &str)
+{
+    match fs::remove_dir_all(dir_path) {
             Err(why) => println!("! {:?}", why.kind()),
             Ok(_) => {},
         }
