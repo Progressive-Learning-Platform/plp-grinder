@@ -267,9 +267,4 @@ impl StaticSymbolTable for SymbolTable
         self.children_scopes.push(symbol);
         return true;
     }
-
-    fn concatenate_namespace(&self, namespace: String, extension: String) -> String
-    {
-        return namespace + "." +  &extension;
-    }
 }
