@@ -1,4 +1,5 @@
 use symbols::*;
+use symbols::commons::*;
 use support::*;
 
 //TODO change String to Symbol
@@ -86,13 +87,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace
 	fn lookup_variable(&self, namespace: &str, name: &str) -> Option<&Symbol>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator(namespace_delimiter()).collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect(namespace_delimiter());
 
             if namespaces.is_empty()
             {
@@ -127,13 +128,13 @@ impl StaticSymbolTable for SymbolTable
 	fn lookup_function(&self, namespace: &str, name: &str, argument_types: &Vec<String>) -> Option<&Symbol>
     {
         //TODO use argument_types
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator(namespace_delimiter()).collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect(namespace_delimiter());
 
             if namespaces.is_empty()
             {
@@ -187,13 +188,13 @@ impl StaticSymbolTable for SymbolTable
     /// @return the specified symbol or None if the specified symbol is not in this namespace or a parent namespace
 	fn lookup_structure(&self, namespace: &str, name: &str) -> Option<(&Symbol)>
     {
-        let mut namespaces: Vec<&str> = namespace.split_terminator('.').collect();
+        let mut namespaces: Vec<&str> = namespace.split_terminator(namespace_delimiter()).collect();
         let mut length;
         let mut current_namespace;
 
         loop
         {
-            current_namespace = namespaces.connect(".");
+            current_namespace = namespaces.connect(namespace_delimiter());
 
             if namespaces.is_empty()
             {
@@ -228,11 +229,8 @@ impl StaticSymbolTable for SymbolTable
     /// TODO: support overloaded methods
 	fn add(&mut self, class: SymbolClass, namespace: String, name: String, is_static: bool, in_method: bool, is_parameter: bool, local_variable_count: u16, static_variable_count: u16, parameter_offset: u16) -> bool
     {
-        let mut static_label = namespace.replace(".", "_").clone();
-        static_label.push_str("_static");
-        let mut method_namespace = namespace.replace(".", "_").clone();
-        method_namespace.push_str("_");
-        method_namespace.push_str(&*name);
+        let static_label = concatenate_label(&*create_label_from_namespace(&*namespace.clone()), "static");
+        let method_namespace = concatenate_label(&*create_label_from_namespace(&*namespace.clone()), &*name.clone());
 
         //TODO add return false
         let mut location: SymbolLocation = match class

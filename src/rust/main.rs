@@ -775,6 +775,11 @@ fn remove_meta(tokens: &mut Vec<Token>)
         {
             invalid_indecies.push(index);
         }
+        // Removal all final behaviour modifiers
+        else if token.value == "final"
+        {
+            invalid_indecies.push(index);
+        }
     }
 
     // count := how many indecies have already been removed
